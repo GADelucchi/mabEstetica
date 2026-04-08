@@ -1,8 +1,10 @@
 // Imports
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import "./PrincipalRecord.css";
 import Button from "../Button/Button";
 import { Tooltip } from "bootstrap";
+
+const PRINCIPAL_RECORD_DRAFT_KEY = "mab_principal_record_draft";
 
 // Code
 const PrincipalRecord = ({
@@ -13,7 +15,16 @@ const PrincipalRecord = ({
   clearCanvas,
   sendInfoToServer,
 }) => {
+  const formRef = useRef(null);
+  const birthDayRef = useRef(null);
+  const birthMonthRef = useRef(null);
+  const birthYearRef = useRef(null);
   const [birthDate, setBirthDate] = useState("");
+  const [birthDateParts, setBirthDateParts] = useState({
+    day: "",
+    month: "",
+    year: "",
+  });
   const [age, setAge] = useState(null);
   const [showTextArea, setShowTextArea] = useState({
     vitaminasTextArea: false,
@@ -40,12 +51,67 @@ const PrincipalRecord = ({
     return age;
   };
 
-  const handleBirthDateChange = (e) => {
-    const newDate = e.target.value;
-    setBirthDate(newDate);
+  const isValidBirthDate = (year, month, day) => {
+    if (year.length !== 4 || month.length !== 2 || day.length !== 2) return false;
 
-    const ageCalculated = calculateAge(newDate);
-    setAge(ageCalculated);
+    const numericYear = Number(year);
+    const numericMonth = Number(month);
+    const numericDay = Number(day);
+
+    if (
+      !Number.isInteger(numericYear) ||
+      !Number.isInteger(numericMonth) ||
+      !Number.isInteger(numericDay) ||
+      numericMonth < 1 ||
+      numericMonth > 12 ||
+      numericDay < 1
+    ) {
+      return false;
+    }
+
+    const candidateDate = new Date(`${year}-${month}-${day}T00:00:00`);
+
+    return (
+      !Number.isNaN(candidateDate.getTime()) &&
+      candidateDate.getFullYear() === numericYear &&
+      candidateDate.getMonth() + 1 === numericMonth &&
+      candidateDate.getDate() === numericDay
+    );
+  };
+
+  const updateBirthDateState = (nextParts) => {
+    setBirthDateParts(nextParts);
+
+    if (isValidBirthDate(nextParts.year, nextParts.month, nextParts.day)) {
+      const formattedDate = `${nextParts.year}-${nextParts.month}-${nextParts.day}`;
+      setBirthDate(formattedDate);
+      setAge(calculateAge(formattedDate));
+      return;
+    }
+
+    setBirthDate("");
+    setAge(null);
+  };
+
+  const handleBirthDatePartChange = (part, maxLength, nextFieldRef) => (e) => {
+    const sanitizedValue = e.target.value.replace(/\D/g, "").slice(0, maxLength);
+    const nextParts = {
+      ...birthDateParts,
+      [part]: sanitizedValue,
+    };
+
+    updateBirthDateState(nextParts);
+
+    if (sanitizedValue.length === maxLength && nextFieldRef?.current) {
+      nextFieldRef.current.focus();
+      nextFieldRef.current.select();
+    }
+  };
+
+  const handleBirthDatePartKeyDown = (previousFieldRef, currentValue) => (e) => {
+    if (e.key === "Backspace" && !currentValue && previousFieldRef?.current) {
+      previousFieldRef.current.focus();
+    }
   };
 
   const toggleTextArea = (textAreaId, show) => {
@@ -64,9 +130,122 @@ const PrincipalRecord = ({
     });
   }, []);
 
+  useEffect(() => {
+    const form = formRef.current;
+    if (!form) return;
+
+    const savedDraftRaw = localStorage.getItem(PRINCIPAL_RECORD_DRAFT_KEY);
+    if (!savedDraftRaw) return;
+
+    try {
+      const savedDraft = JSON.parse(savedDraftRaw);
+
+      Object.entries(savedDraft).forEach(([key, value]) => {
+        const radioCandidates = form.querySelectorAll(`input[type="radio"][name="${key}"]`);
+        if (radioCandidates.length > 0) {
+          radioCandidates.forEach((radio) => {
+            radio.checked = radio.value === value;
+          });
+          return;
+        }
+
+        const fieldById = form.querySelector(`#${key}`);
+        if (!fieldById) return;
+
+        if (fieldById.type === "checkbox") {
+          fieldById.checked = Boolean(value);
+          return;
+        }
+
+        fieldById.value = value;
+      });
+
+      const savedBirthDate = savedDraft.fechaNacimiento || "";
+      const savedBirthDateParts = savedBirthDate
+        ? (() => {
+            const [year = "", month = "", day = ""] = savedBirthDate.split("-");
+            return { day, month, year };
+          })()
+        : {
+            day: savedDraft.fechaNacimientoDia || "",
+            month: savedDraft.fechaNacimientoMes || "",
+            year: savedDraft.fechaNacimientoAnio || "",
+          };
+
+      setBirthDate(savedBirthDate);
+      setBirthDateParts(savedBirthDateParts);
+      setAge(savedBirthDate ? calculateAge(savedBirthDate) : null);
+
+      setShowTextArea({
+        vitaminasTextArea: savedDraft.vitaminas === "Sí",
+        anticonceptivosTextArea: savedDraft.anticonceptivos === "Sí",
+        hormonasTextArea: savedDraft.hormonas === "Sí",
+        corticoidesTextArea: savedDraft.corticoides === "Sí",
+        medicamentosTextArea: savedDraft.medicamentos === "Sí",
+        alergiasTextArea: savedDraft.alergias === "Sí",
+        intervencionesTextArea: savedDraft.cirugiasPrevias === "Sí",
+        implantesTextArea: savedDraft.implantes === "Sí",
+      });
+    } catch {
+      localStorage.removeItem(PRINCIPAL_RECORD_DRAFT_KEY);
+    }
+  }, []);
+
+  const persistDraft = () => {
+    const form = formRef.current;
+    if (!form) return;
+
+    const draft = {};
+    const fields = form.querySelectorAll("input, textarea, select");
+
+    fields.forEach((field) => {
+      if (field.type === "radio") {
+        if (field.checked) {
+          draft[field.name] = field.value;
+        }
+        return;
+      }
+
+      if (field.type === "checkbox") {
+        draft[field.id || field.name] = field.checked;
+        return;
+      }
+
+      draft[field.id || field.name] = field.value;
+    });
+
+    localStorage.setItem(PRINCIPAL_RECORD_DRAFT_KEY, JSON.stringify(draft));
+  };
+
+  const clearDraft = () => {
+    localStorage.removeItem(PRINCIPAL_RECORD_DRAFT_KEY);
+    if (formRef.current) formRef.current.reset();
+    setBirthDate("");
+    setBirthDateParts({ day: "", month: "", year: "" });
+    setAge(null);
+    setShowTextArea({
+      vitaminasTextArea: false,
+      anticonceptivosTextArea: false,
+      hormonasTextArea: false,
+      corticoidesTextArea: false,
+      medicamentosTextArea: false,
+      alergiasTextArea: false,
+      intervencionesTextArea: false,
+      implantesTextArea: false,
+    });
+    clearCanvas();
+  };
+
   return (
     <div id="gestionFichas" className="d-flex">
-      <form id="newPatientForm">
+      <form
+        ref={formRef}
+        id="newPatientForm"
+        onSubmit={sendInfoToServer}
+        onInput={persistDraft}
+        onChange={persistDraft}
+        noValidate
+      >
         <legend>
           <strong>Ficha de primera vez</strong>
         </legend>
@@ -81,7 +260,9 @@ const PrincipalRecord = ({
               type="text"
               className="form-control"
               id="nombre"
+              name="nombre"
               placeholder="Ingrese su nombre o nombres"
+              required
             />
           </div>
           <div className="mb-3">
@@ -92,7 +273,9 @@ const PrincipalRecord = ({
               type="text"
               className="form-control"
               id="apellido"
+              name="apellido"
               placeholder="Ingrese su apellido"
+              required
             />
           </div>
           <div className="mb-3">
@@ -103,7 +286,9 @@ const PrincipalRecord = ({
               type="text"
               className="form-control"
               id="documento"
+              name="documento"
               placeholder="Ingrese su documento"
+              required
             />
           </div>
           <div className="mb-3">
@@ -114,6 +299,7 @@ const PrincipalRecord = ({
                 id="sexoMasculino"
                 name="sexo"
                 value="Masculino"
+                required
               />
               <label htmlFor="sexoMasculino">Masculino</label>
               <input
@@ -129,13 +315,55 @@ const PrincipalRecord = ({
             <label htmlFor="fechaNacimiento" className="form-label">
               Fecha de nacimiento
             </label>
+            <div className="birth-date-fields" data-field-group="fechaNacimiento">
+              <input
+                ref={birthDayRef}
+                type="text"
+                className="form-control"
+                id="fechaNacimientoDia"
+                inputMode="numeric"
+                autoComplete="bday-day"
+                placeholder="DD"
+                value={birthDateParts.day}
+                onChange={handleBirthDatePartChange("day", 2, birthMonthRef)}
+                onKeyDown={handleBirthDatePartKeyDown(null, birthDateParts.day)}
+                aria-label="Día de nacimiento"
+              />
+              <span className="birth-date-fields__separator">/</span>
+              <input
+                ref={birthMonthRef}
+                type="text"
+                className="form-control"
+                id="fechaNacimientoMes"
+                inputMode="numeric"
+                autoComplete="bday-month"
+                placeholder="MM"
+                value={birthDateParts.month}
+                onChange={handleBirthDatePartChange("month", 2, birthYearRef)}
+                onKeyDown={handleBirthDatePartKeyDown(birthDayRef, birthDateParts.month)}
+                aria-label="Mes de nacimiento"
+              />
+              <span className="birth-date-fields__separator">/</span>
+              <input
+                ref={birthYearRef}
+                type="text"
+                className="form-control birth-date-fields__year"
+                id="fechaNacimientoAnio"
+                inputMode="numeric"
+                autoComplete="bday-year"
+                placeholder="AAAA"
+                value={birthDateParts.year}
+                onChange={handleBirthDatePartChange("year", 4, null)}
+                onKeyDown={handleBirthDatePartKeyDown(birthMonthRef, birthDateParts.year)}
+                aria-label="Año de nacimiento"
+              />
+            </div>
             <input
-              type="date"
-              className="form-control"
+              type="hidden"
               id="fechaNacimiento"
               name="fechaNacimiento"
               value={birthDate}
-              onChange={handleBirthDateChange}
+              readOnly
             />
             {age !== null && <small>Edad: {age}</small>}
           </div>
@@ -147,7 +375,11 @@ const PrincipalRecord = ({
               type="tel"
               className="form-control"
               id="telefono"
+              name="telefono"
               placeholder="Ingrese su número de teléfono"
+              pattern="[0-9]{8,15}"
+              inputMode="numeric"
+              required
             />
             <small id="numeroTelefonico" className="form-text text-muted">
               Ingresar código de país sin el + y código de área. Ejemplo
@@ -159,10 +391,12 @@ const PrincipalRecord = ({
               Email
             </label>
             <input
-              type="text"
+              type="email"
               className="form-control"
               id="email"
+              name="email"
               placeholder="Ingrese su email"
+              required
             />
           </div>
           <div className="mb-3">
@@ -173,6 +407,7 @@ const PrincipalRecord = ({
               type="text"
               className="form-control"
               id="redes"
+              name="redes"
               placeholder="Ingrese su red social"
             />
           </div>
@@ -184,7 +419,9 @@ const PrincipalRecord = ({
               type="text"
               className="form-control"
               id="direccion"
+              name="direccion"
               placeholder="Ingrese su dirección"
+              required
             />
             <small id="numeroTelefonico" className="form-text text-muted">
               Número o nombre de calle y altura. Ejemplo "Calle Falsa 123"
@@ -198,7 +435,9 @@ const PrincipalRecord = ({
               type="text"
               className="form-control"
               id="ciudad"
+              name="ciudad"
               placeholder="Ciudad"
+              required
             />
             <label htmlFor="Provincia" className="form-label">
               Provincia
@@ -207,7 +446,9 @@ const PrincipalRecord = ({
               type="text"
               className="form-control"
               id="provincia"
+              name="provincia"
               placeholder="Provincia"
+              required
             />
           </div>
           <div className="mb-3">
@@ -558,8 +799,10 @@ const PrincipalRecord = ({
             <textarea
               className="form-control"
               id="problemaPiel"
+              name="problemaPiel"
               rows="2"
               placeholder="Describa el problema"
+              required
             ></textarea>
           </div>
           <div className="mb-3">
@@ -647,6 +890,7 @@ const PrincipalRecord = ({
                 id="autorizaSi"
                 name="autorizacion"
                 value="Sí autorizo"
+                required
               />
               <label htmlFor="autorizaSi">Sí autorizo</label>
               <input
@@ -701,11 +945,17 @@ const PrincipalRecord = ({
           </button>
         </div>
 
-        {/* Botón de envío */}
-        <div className="d-flex justify-content-center">
+        {/* Botones de acción */}
+        <div className="d-flex justify-content-center gap-3">
+          <Button
+            text="Borrar borrador"
+            type="button"
+            onClick={clearDraft}
+            className={"btn btn-outline-secondary"}
+          />
           <Button
             text="Enviar"
-            onClick={sendInfoToServer}
+            type="submit"
             className={"btn btn-meli"}
           />
         </div>

@@ -1,48 +1,34 @@
 // Imports
-import React from "react";
 import { NavLink } from "react-router-dom";
+import "./Navbar.css";
+
+const defaultItems = [
+  { to: "/home", label: "Inicio" },
+  { to: "/fichas", label: "Fichas" },
+  { to: "/turnos", label: "Turnos" },
+  { to: "/catalogo", label: "Catálogo" },
+];
 
 // Code
-const Navbar = () => {
+const Navbar = ({ items = defaultItems, className = "" }) => {
   return (
-    <div className="container justify-content-center">
-      <nav className="navbar navbar-expand-lg">
-        <div className="container-fluid">
-          <div className="collapse navbar-collapse" id="navbarNav">
-            <ul className="navbar-nav">
-              <li className="nav-item">
-                <NavLink to="/home" className="nav-link">
-                  Inicio
-                </NavLink>
-              </li>
-              <li className="nav-item">
-                <NavLink to="/fichas" className="nav-link">
-                  Fichas
-                </NavLink>
-              </li>
-              <li className="nav-item">
-                <NavLink
-                  to="/turnos"
-                  className="nav-link disabled"
-                  aria-disabled="true"
-                >
-                  Turnos
-                </NavLink>
-              </li>
-              <li className="nav-item">
-                <NavLink
-                  to="/catalogo"
-                  className="nav-link disabled"
-                  aria-disabled="true"
-                >
-                  Catálogo
-                </NavLink>
-              </li>
-            </ul>
-          </div>
+    <nav className={`navbar navbar-expand-lg navbar-mab ${className}`.trim()}>
+      <div className="container-fluid px-0">
+        <div className="navbar-nav mab-nav-list">
+          {items.map(({ to, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                `nav-link mab-nav-link${isActive ? " active" : ""}`
+              }
+            >
+              {label}
+            </NavLink>
+          ))}
         </div>
-      </nav>
-    </div>
+      </div>
+    </nav>
   );
 };
 

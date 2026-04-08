@@ -1,0 +1,23 @@
+.birth-date-fields {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.birth-date-fields .form-control {
+	max-width: 5rem;
+	text-align: center;
+}
+
+.birth-date-fields__year {
+	max-width: 6.5rem;
+}
+
+.birth-date-fields__separator {
+	color: #6c757d;
+	font-weight: 600;
+}
+
+.birth-date-fields.is-invalid .form-control {
+	border-color: var(--bs-form-invalid-border-color);
+}

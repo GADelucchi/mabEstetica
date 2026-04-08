@@ -1,14 +1,29 @@
 .footer {
   background: #ffe1fb;
   color: #000000;
-  text-align: center;
-  padding: 10px 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
   position: fixed;
   bottom: 0;
   left: 0;
   width: 100%;
+  z-index: 1000;
+}
+
+.footer__content {
+  width: min(1120px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 0.85rem 0;
+  text-align: center;
 }
 
 .footer p {
   margin: 0;
+  color: rgba(0, 0, 0, 0.72);
+  font-size: 0.95rem;
+}
+
+@media (max-width: 768px) {
+  .footer__content {
+    width: min(100%, calc(100% - 1rem));
+  }
 }

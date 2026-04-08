@@ -2,9 +2,20 @@
 import "./Button.css";
 
 // Code
-const Button = ({ text, onClick, className }) => {
+const Button = ({
+  text,
+  onClick,
+  className = "",
+  type = "button",
+  disabled = false,
+}) => {
   return (
-    <button className={`${className}`} onClick={onClick}>
+    <button
+      type={type}
+      className={`button-base ${className}`.trim()}
+      onClick={onClick}
+      disabled={disabled}
+    >
       {text}
     </button>
   );

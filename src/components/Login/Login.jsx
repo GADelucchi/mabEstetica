@@ -14,12 +14,20 @@ const Login = () => {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [clearPassword, setClearPassword] = useState(false);
+  const [usersLoaded, setUsersLoaded] = useState(false);
+  const [fetchError, setFetchError] = useState("");
 
   useEffect(() => {
     fetch("/usuarios.json")
       .then((response) => response.json())
-      .then((usuarios) => setUsers(usuarios))
-      .catch((err) => console.error("Error cargando usuarios:", err));
+      .then((usuarios) => {
+        setUsers(usuarios);
+        setUsersLoaded(true);
+      })
+      .catch(() => {
+        setFetchError("No se pudieron cargar los usuarios de prueba.");
+        setUsersLoaded(true);
+      });
   }, []);
 
   const manejarSubmit = (e) => {
@@ -34,21 +42,30 @@ const Login = () => {
       navigate("/home");
     } else {
       setError("Correo o contraseña incorrectos.");
-      setClearPassword(true); // activa el borrado en el siguiente focus
+      setClearPassword(true);
     }
   };
 
   const handlePasswordFocus = () => {
     if (clearPassword) {
-      setPassword(""); // borra el input
-      setClearPassword(false); // evita que siga borrando después
+      setPassword("");
+      setClearPassword(false);
     }
   };
 
   return (
-    <div className="d-flex justify-content-center align-items-center">
-      <form className="p-4 border rounded shadow-sm" onSubmit={manejarSubmit}>
-        <div className="mb-3">
+    <section className="login-page">
+      <div className="login-card">
+        <div className="login-card__header">
+          <p className="login-card__eyebrow">Acceso</p>
+          <h2>Ingresá al sistema</h2>
+          <p className="login-card__text">
+            Usá este acceso de prueba para navegar la interfaz actual.
+          </p>
+        </div>
+
+        <form className="login-form" onSubmit={manejarSubmit}>
+          <div className="mb-3">
           <label htmlFor="email" className="form-label">
             Email
           </label>
@@ -62,10 +79,12 @@ const Login = () => {
               setEmail(e.target.value);
               setError("");
             }}
+            autoComplete="email"
+            required
           />
-        </div>
+          </div>
 
-        <div className="mb-3">
+          <div className="mb-3">
           <label htmlFor="password" className="form-label">
             Contraseña
           </label>
@@ -81,35 +100,52 @@ const Login = () => {
                 setPassword(e.target.value);
                 setError("");
               }}
+              autoComplete="current-password"
+              required
             />
             <button
               type="button"
-              className="btn btn-outline-secondary"
+              className="btn btn-outline-secondary login-form__toggle"
               onClick={() => setShowPassword(!showPassword)}
-              tabIndex={-1}
+              aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
             >
               {showPassword ? "🙈" : "👁️"}
             </button>
           </div>
-        </div>
-
-        {error && (
-          <div className="alert alert-danger text-center" role="alert">
-            {error}
           </div>
-        )}
 
-        <div className="d-flex justify-content-between align-items-center">
-          <Button text="Ingresar" />
-          <a href="#" className="text-decoration-none">
-            Olvidé mi contraseña
-          </a>
-          <a href="#" className="text-decoration-none">
-            Registrarme
-          </a>
-        </div>
-      </form>
-    </div>
+          {fetchError && (
+            <div className="alert alert-warning text-center" role="alert">
+              {fetchError}
+            </div>
+          )}
+
+          {error && (
+            <div className="alert alert-danger text-center" role="alert">
+              {error}
+            </div>
+          )}
+
+          <div className="login-actions">
+            <Button
+              text={usersLoaded ? "Ingresar" : "Cargando..."}
+              type="submit"
+              className="btn btn-meli login-actions__submit"
+              disabled={!usersLoaded}
+            />
+
+            <div className="login-links">
+              <span className="login-link login-link--disabled">
+                Olvidé mi contraseña
+              </span>
+              <span className="login-link login-link--disabled">
+                Registrarme
+              </span>
+            </div>
+          </div>
+        </form>
+      </div>
+    </section>
   );
 };
 

@@ -1,18 +1,33 @@
 // Imports
-import React from "react";
 import "./Header.css";
-import { useAuth } from "../../context/AuthContext";
+import { useLocation } from "react-router-dom";
 import Navbar from "../Navbar/Navbar";
+
+const sectionNavItems = [
+  { to: "/fichas", label: "Fichas" },
+  { to: "/turnos", label: "Turnos" },
+  { to: "/catalogo", label: "Catálogo" },
+];
 
 // Code
 const Header = () => {
-  const { loguedIn } = useAuth();
+  const location = useLocation();
+  const showSectionNav = location.pathname !== "/" && location.pathname !== "/home";
 
   return (
     <header className="header">
-      <h1>MAB Estética</h1>
+      <div className="header__content">
+        <div>
+          <p className="header__eyebrow">Agenda y fichas clínicas</p>
+          <h1>MAB Estética</h1>
+        </div>
+      </div>
 
-      {loguedIn && <Navbar />}
+      {showSectionNav && (
+        <div className="header__subnav">
+          <Navbar items={sectionNavItems} className="header__subnav-nav" />
+        </div>
+      )}
     </header>
   );
 };

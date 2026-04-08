@@ -1,0 +1,31 @@
+.placeholder-page {
+  min-height: calc(100vh - 18rem);
+  display: grid;
+  place-items: center;
+}
+
+.placeholder-page__card {
+  width: min(100%, 640px);
+  text-align: center;
+  padding: 2rem;
+  border-radius: 24px;
+  background: linear-gradient(180deg, #ffffff, #fff7fd);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.06);
+}
+
+.placeholder-page__eyebrow {
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(0, 0, 0, 0.55);
+  margin-bottom: 0.75rem;
+}
+
+.placeholder-page__card h2 {
+  margin-bottom: 0.75rem;
+}
+
+.placeholder-page__description {
+  color: #635a62;
+}

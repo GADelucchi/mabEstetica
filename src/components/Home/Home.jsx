@@ -1,17 +1,40 @@
 // Import
-import React from "react";
 import "./Home.css";
-import { Link, NavLink } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 // Code
 const Inicio = () => {
   return (
-    <>
-      <div className="d-flex flex-column divHome">
-        <h1 className="text-center">Bienvenido a MAB Estética</h1>
-        <p>Tu lugar para el cuidado y bienestar estético.</p>
+    <section className="home-page">
+      <div className="home-hero">
+        <p className="home-hero__eyebrow">Panel principal</p>
+        <h2>Bienvenida a MAB Estética</h2>
+        <p className="home-hero__description">
+          Un espacio para centralizar pacientes, seguimiento clínico y la base
+          de tu futura agenda diaria.
+        </p>
       </div>
-    </>
+
+      <div className="home-grid">
+        <Link to="/fichas" className="home-card">
+          <span className="home-card__title">Fichas</span>
+          <p>
+            Accedé al alta de pacientes y al registro clínico diario desde una
+            misma vista.
+          </p>
+        </Link>
+
+        <Link to="/turnos" className="home-card home-card--muted">
+          <span className="home-card__title">Turnos</span>
+          <p>Preparado para sumar agenda, disponibilidad y control de citas.</p>
+        </Link>
+
+        <Link to="/catalogo" className="home-card home-card--muted">
+          <span className="home-card__title">Catálogo</span>
+          <p>Base para organizar tratamientos, servicios y productos.</p>
+        </Link>
+      </div>
+    </section>
   );
 };
 

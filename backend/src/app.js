@@ -48,8 +48,8 @@ const swaggerOptions = {
     definition: {
         openapi: '3.0.1',
         info: {
-            title: 'Documentación de adoptame',
-            description: 'Esta es la documentación de adoptame'
+            title: 'Documentación de MABESTETICA',
+            description: 'Esta es la documentación de MABESTETICA'
         }
     },
     apis: [`${__dirname}/docs/**/*.yaml`]

@@ -1,12 +1,13 @@
 // Imports
-import React from "react";
 import "./Footer.css";
 
 // Code
 const Footer = () => {
   return (
     <footer className="footer">
-      <p>&copy; 2025 Mab Estética. Todos los derechos reservados.</p>
+      <div className="footer__content">
+        <p>&copy; 2026 MAB Estética. Agenda y seguimiento clínico.</p>
+      </div>
     </footer>
   );
 };

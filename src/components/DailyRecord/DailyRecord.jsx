@@ -1,12 +1,89 @@
 // Imports
+import { useEffect, useRef } from "react";
 import "./DailyRecord.css";
 import Button from "../Button/Button";
 
+const DAILY_RECORD_DRAFT_KEY = "mab_daily_record_draft";
+
 // Code
 const DailyRecord = ({ sendInfoToServer }) => {
+  const formRef = useRef(null);
+
+  useEffect(() => {
+    const form = formRef.current;
+    if (!form) return;
+
+    const savedDraftRaw = localStorage.getItem(DAILY_RECORD_DRAFT_KEY);
+    if (!savedDraftRaw) return;
+
+    try {
+      const savedDraft = JSON.parse(savedDraftRaw);
+
+      Object.entries(savedDraft).forEach(([key, value]) => {
+        const radioCandidates = form.querySelectorAll(`input[type="radio"][name="${key}"]`);
+        if (radioCandidates.length > 0) {
+          radioCandidates.forEach((radio) => {
+            radio.checked = radio.value === value;
+          });
+          return;
+        }
+
+        const fieldById = form.querySelector(`#${key}`);
+        if (!fieldById) return;
+
+        if (fieldById.type === "checkbox") {
+          fieldById.checked = Boolean(value);
+          return;
+        }
+
+        fieldById.value = value;
+      });
+    } catch {
+      localStorage.removeItem(DAILY_RECORD_DRAFT_KEY);
+    }
+  }, []);
+
+  const persistDraft = () => {
+    const form = formRef.current;
+    if (!form) return;
+
+    const draft = {};
+    const fields = form.querySelectorAll("input, textarea, select");
+
+    fields.forEach((field) => {
+      if (field.type === "radio") {
+        if (field.checked) {
+          draft[field.name] = field.value;
+        }
+        return;
+      }
+
+      if (field.type === "checkbox") {
+        draft[field.id || field.name] = field.checked;
+        return;
+      }
+
+      draft[field.id || field.name] = field.value;
+    });
+
+    localStorage.setItem(DAILY_RECORD_DRAFT_KEY, JSON.stringify(draft));
+  };
+
+  const clearDraft = () => {
+    localStorage.removeItem(DAILY_RECORD_DRAFT_KEY);
+    if (formRef.current) formRef.current.reset();
+  };
+
   return (
     <div id="gestionFichas" className="d-flex">
-      <form id="dailyRecordForm">
+      <form
+        ref={formRef}
+        id="dailyRecordForm"
+        onSubmit={sendInfoToServer}
+        onInput={persistDraft}
+        onChange={persistDraft}
+        noValidate
+      >
         <legend>
           <strong>Ficha diaria</strong>
         </legend>
@@ -17,10 +94,15 @@ const DailyRecord = ({ sendInfoToServer }) => {
               Horas de sueño
             </label>
             <input
-              type="text"
+              type="number"
               className="form-control"
               id="horasSueno"
+              name="horasSueno"
               placeholder="Ingrese las horas de sueño"
+              min="0"
+              max="24"
+              step="0.5"
+              required
             />
           </div>
           <div className="mb-3">
@@ -31,7 +113,9 @@ const DailyRecord = ({ sendInfoToServer }) => {
               type="text"
               className="form-control"
               id="ejercicio"
+              name="ejercicio"
               placeholder="Describa su rutina de ejercicio"
+              required
             />
           </div>
           <div className="mb-3">
@@ -39,10 +123,15 @@ const DailyRecord = ({ sendInfoToServer }) => {
               Tiempo en horas de exposición solar durante el día
             </label>
             <input
-              type="text"
+              type="number"
               className="form-control"
               id="exposicionSolar"
+              name="exposicionSolar"
               placeholder="Ingrese el tiempo"
+              min="0"
+              max="24"
+              step="0.5"
+              required
             />
           </div>
           <div className="mb-3">
@@ -53,6 +142,7 @@ const DailyRecord = ({ sendInfoToServer }) => {
                 id="protectorSi"
                 name="protectorSolar"
                 value="Sí"
+                required
               />
               <label htmlFor="protectorSi">Sí</label>
               <input
@@ -72,6 +162,7 @@ const DailyRecord = ({ sendInfoToServer }) => {
                 id="reaplicaSi"
                 name="reaplicacion"
                 value="Sí"
+                required
               />
               <label htmlFor="reaplicaSi">Sí</label>
               <input
@@ -88,10 +179,15 @@ const DailyRecord = ({ sendInfoToServer }) => {
               Cantidad de agua que toma al día
             </label>
             <input
-              type="text"
+              type="number"
               className="form-control"
               id="aguaDiaria"
+              name="aguaDiaria"
               placeholder="Ingrese la cantidad"
+              min="0.1"
+              max="15"
+              step="0.1"
+              required
             />
           </div>
           <div className="mb-3">
@@ -102,6 +198,7 @@ const DailyRecord = ({ sendInfoToServer }) => {
                 id="alimentosBueno"
                 name="alimentos"
                 value="Bueno"
+                required
               />
               <label htmlFor="alimentosBueno">Bueno</label>
               <input
@@ -128,7 +225,9 @@ const DailyRecord = ({ sendInfoToServer }) => {
               type="text"
               className="form-control"
               id="estres"
+              name="estres"
               placeholder="Describa su nivel de estrés"
+              required
             />
           </div>
           <div className="mb-3">
@@ -139,7 +238,9 @@ const DailyRecord = ({ sendInfoToServer }) => {
               type="text"
               className="form-control"
               id="rutinaActual"
+              name="rutinaActual"
               placeholder="Ingrese el tratamiento actual"
+              required
             />
           </div>
           <div className="mb-3">
@@ -150,7 +251,9 @@ const DailyRecord = ({ sendInfoToServer }) => {
               type="text"
               className="form-control"
               id="aspectos"
+              name="aspectos"
               placeholder="Ingrese los aspectos a seguir abordando"
+              required
             />
           </div>
           <div className="mb-3">
@@ -161,7 +264,9 @@ const DailyRecord = ({ sendInfoToServer }) => {
               type="text"
               className="form-control"
               id="tratamientosHoy"
+              name="tratamientosHoy"
               placeholder="Ingrese los tratamientos realizados hoy"
+              required
             />
           </div>
           <div className="mb-3">
@@ -172,15 +277,23 @@ const DailyRecord = ({ sendInfoToServer }) => {
               type="text"
               className="form-control"
               id="rutinaDomiciliaria"
+              name="rutinaDomiciliaria"
               placeholder="Ingrese la rutina domiciliaria"
+              required
             />
           </div>
         </fieldset>
 
-        <div className="d-flex justify-content-center">
+        <div className="d-flex justify-content-center gap-3">
+          <Button
+            text="Borrar borrador"
+            type="button"
+            onClick={clearDraft}
+            className={"btn btn-outline-secondary"}
+          />
           <Button
             text="Enviar"
-            onClick={sendInfoToServer}
+            type="submit"
             className={"btn btn-meli"}
           />
         </div>
