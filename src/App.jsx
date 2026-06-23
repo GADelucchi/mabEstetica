@@ -10,6 +10,7 @@ import Records from "./components/Records/Records";
 import PlaceholderPage from "./components/PlaceholderPage/PlaceholderPage";
 import PrivateRoute from "./components/PrivateRoute/PrivateRoute";
 import ResetPassword from "./components/ResetPassword/ResetPassword";
+import Appointments from "./components/Appointments/Appointments";
 
 // Code
 function App() {
@@ -56,10 +57,7 @@ function App() {
               path="/turnos"
               element={
                 <PrivateRoute>
-                  <PlaceholderPage
-                    title="Turnos"
-                    description="Esta sección va a centralizar la agenda, disponibilidad y seguimiento de citas."
-                  />
+                  <Appointments />
                 </PrivateRoute>
               }
             />

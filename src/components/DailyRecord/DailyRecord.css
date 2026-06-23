@@ -1,0 +1,72 @@
+.daily-record__search-results {
+	display: grid;
+	gap: 0.5rem;
+	max-height: 260px;
+	overflow-y: auto;
+	margin-bottom: 1rem;
+}
+
+.daily-record__search-item {
+	border: 1px solid rgba(0, 0, 0, 0.12);
+	background: #fff;
+	border-radius: 12px;
+	padding: 0.75rem;
+	text-align: left;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.daily-record__search-item:hover {
+	border-color: rgba(0, 0, 0, 0.3);
+}
+
+.daily-record__search-item span {
+	color: #5e5860;
+	font-size: 0.9rem;
+}
+
+.daily-record__patient-card {
+	background: #fff;
+	border: 1px solid rgba(0, 0, 0, 0.1);
+	border-radius: 14px;
+	padding: 1rem;
+	margin-bottom: 0.5rem;
+}
+
+.daily-record__patient-title {
+	font-size: 0.78rem;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: rgba(0, 0, 0, 0.55);
+	margin-bottom: 0.5rem;
+}
+
+.daily-record__patient-card h3 {
+	font-size: 1.1rem;
+	margin-bottom: 0.35rem;
+}
+
+.daily-record__empty {
+	color: #6b646b;
+	font-size: 0.95rem;
+	margin-bottom: 1rem;
+}
+
+.daily-record__history {
+	display: grid;
+	gap: 0.75rem;
+}
+
+.daily-record__history-card {
+	border: 1px solid rgba(0, 0, 0, 0.09);
+	background: #fff;
+	border-radius: 12px;
+	padding: 0.9rem;
+}
+
+.daily-record__history-date {
+	font-weight: 700;
+	margin-bottom: 0.35rem;
+}

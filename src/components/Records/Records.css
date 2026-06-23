@@ -118,6 +118,76 @@ textarea {
   margin-bottom: 0.5rem;
 }
 
+.records-page__search {
+  padding: 1.25rem;
+  border-radius: 20px;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.05);
+}
+
+.records-page__search-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.records-page__search-head h3 {
+  margin-top: 0.35rem;
+}
+
+.records-page__search-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 1rem;
+}
+
+.records-page__result-list {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.records-page__result-item {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  background: #fff;
+  padding: 0.75rem;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.records-page__result-item span {
+  font-size: 0.9rem;
+  color: #615a61;
+}
+
+.records-page__selected-card {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 14px;
+  padding: 1rem;
+  background: linear-gradient(180deg, #fff, #fff7fd);
+}
+
+.records-page__selected-card h4 {
+  margin: 0.4rem 0;
+}
+
+.records-page__helper {
+  margin-top: 0.65rem;
+  color: #5f5760;
+}
+
+.records-page__helper--error {
+  color: #a12c2c;
+}
+
 .records-page__errors {
   margin: 0;
   padding-left: 1.25rem;
@@ -135,6 +205,14 @@ textarea {
 
   .records-page__switch {
     width: 100%;
+  }
+
+  .records-page__search-head {
+    flex-direction: column;
+  }
+
+  .records-page__search-grid {
+    grid-template-columns: 1fr;
   }
 
 }

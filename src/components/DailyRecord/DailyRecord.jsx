@@ -1,12 +1,34 @@
 // Imports
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import "./DailyRecord.css";
 import Button from "../Button/Button";
 
 const DAILY_RECORD_DRAFT_KEY = "mab_daily_record_draft";
 
+const formatDate = (dateValue) => {
+  if (!dateValue) return "-";
+
+  const parsedDate = new Date(`${dateValue}T00:00:00`);
+  if (Number.isNaN(parsedDate.getTime())) return dateValue;
+
+  return parsedDate.toLocaleDateString("es-AR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+};
+
 // Code
-const DailyRecord = ({ sendInfoToServer }) => {
+const DailyRecord = ({
+  sendInfoToServer,
+  patients = [],
+  selectedPatient,
+  onSelectPatient,
+  patientSearchTerm,
+  onPatientSearchTermChange,
+  dailyHistory = [],
+  dailyHistoryLoading = false,
+}) => {
   const formRef = useRef(null);
 
   useEffect(() => {
@@ -43,6 +65,19 @@ const DailyRecord = ({ sendInfoToServer }) => {
     }
   }, []);
 
+  const filteredPatients = useMemo(() => {
+    const term = patientSearchTerm.trim().toLowerCase();
+    if (!term) return [];
+
+    return patients
+      .filter((patient) => {
+        const fullName = `${patient.nombre || ""} ${patient.apellido || ""}`.toLowerCase();
+        const documento = String(patient.documento || "").toLowerCase();
+        return fullName.includes(term) || documento.includes(term);
+      })
+      .slice(0, 8);
+  }, [patients, patientSearchTerm]);
+
   const persistDraft = () => {
     const form = formRef.current;
     if (!form) return;
@@ -63,6 +98,10 @@ const DailyRecord = ({ sendInfoToServer }) => {
         return;
       }
 
+      if ((field.id || field.name) === "idFichaPrincipal") {
+        return;
+      }
+
       draft[field.id || field.name] = field.value;
     });
 
@@ -72,6 +111,11 @@ const DailyRecord = ({ sendInfoToServer }) => {
   const clearDraft = () => {
     localStorage.removeItem(DAILY_RECORD_DRAFT_KEY);
     if (formRef.current) formRef.current.reset();
+  };
+
+  const handlePatientSelect = (patient) => {
+    onSelectPatient(patient);
+    onPatientSearchTermChange(`${patient.nombre || ""} ${patient.apellido || ""}`.trim());
   };
 
   return (
@@ -87,6 +131,67 @@ const DailyRecord = ({ sendInfoToServer }) => {
         <legend>
           <strong>Ficha diaria</strong>
         </legend>
+
+        <fieldset>
+          <legend>Paciente</legend>
+
+          <div className="mb-3">
+            <label htmlFor="dailyPatientSearch" className="form-label">
+              Buscar paciente por nombre, apellido o documento
+            </label>
+            <input
+              type="search"
+              id="dailyPatientSearch"
+              className="form-control"
+              placeholder="Ejemplo: Ana, Pérez o 30111222"
+              value={patientSearchTerm}
+              onChange={(e) => onPatientSearchTermChange(e.target.value)}
+            />
+          </div>
+
+          {patientSearchTerm.trim() && !selectedPatient && filteredPatients.length > 0 && (
+            <div className="daily-record__search-results" role="listbox" aria-label="Resultados de pacientes">
+              {filteredPatients.map((patient) => (
+                <button
+                  key={patient.id}
+                  type="button"
+                  className="daily-record__search-item"
+                  onClick={() => handlePatientSelect(patient)}
+                >
+                  <strong>{patient.nombre} {patient.apellido}</strong>
+                  <span>DNI {patient.documento}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {patientSearchTerm.trim() && filteredPatients.length === 0 && !selectedPatient && (
+            <p className="daily-record__empty">No se encontraron pacientes para esa búsqueda.</p>
+          )}
+
+          <input
+            type="hidden"
+            id="idFichaPrincipal"
+            name="idFichaPrincipal"
+            value={selectedPatient?.id ?? ""}
+            readOnly
+          />
+
+          {selectedPatient ? (
+            <div className="daily-record__patient-card" data-field-group="idFichaPrincipal">
+              <p className="daily-record__patient-title">Paciente seleccionado</p>
+              <h3>{selectedPatient.nombre} {selectedPatient.apellido}</h3>
+              <p>DNI: {selectedPatient.documento}</p>
+              <p>Email: {selectedPatient.email || "-"}</p>
+              <p>Teléfono: {selectedPatient.telefono || "-"}</p>
+            </div>
+          ) : (
+            <p className="daily-record__empty" data-field-group="idFichaPrincipal">
+              Seleccioná un paciente antes de guardar la ficha diaria.
+            </p>
+          )}
+        </fieldset>
+
         <fieldset>
           <legend>Hábitos</legend>
           <div className="mb-3">
@@ -283,6 +388,29 @@ const DailyRecord = ({ sendInfoToServer }) => {
             />
           </div>
         </fieldset>
+
+        {selectedPatient && (
+          <fieldset>
+            <legend>Historial diario del paciente</legend>
+
+            {dailyHistoryLoading ? (
+              <p className="daily-record__empty">Cargando historial...</p>
+            ) : dailyHistory.length === 0 ? (
+              <p className="daily-record__empty">Aún no hay fichas diarias registradas para este paciente.</p>
+            ) : (
+              <div className="daily-record__history">
+                {dailyHistory.map((record) => (
+                  <article key={record.id} className="daily-record__history-card">
+                    <p className="daily-record__history-date">Sesión: {formatDate(record.fechaSesion)}</p>
+                    <p><strong>Tratamiento:</strong> {record.tratamientosHoy || "-"}</p>
+                    <p><strong>Aspectos a trabajar:</strong> {record.aspectos || "-"}</p>
+                    <p><strong>Rutina domiciliaria:</strong> {record.rutinaDomiciliaria || "-"}</p>
+                  </article>
+                ))}
+              </div>
+            )}
+          </fieldset>
+        )}
 
         <div className="d-flex justify-content-center gap-3">
           <Button

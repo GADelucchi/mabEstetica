@@ -43,6 +43,21 @@
   margin-bottom: 0.25rem;
 }
 
+.header__session {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.header__session-user {
+  font-size: 0.92rem;
+  color: rgba(38, 33, 39, 0.85);
+  max-width: 280px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 @media (max-width: 768px) {
   .header__content {
     width: min(100%, calc(100% - 1rem));
@@ -57,5 +72,14 @@
   .header__subnav-nav {
     width: 100%;
     overflow-x: auto;
+  }
+
+  .header__session {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .header__session-user {
+    max-width: 65%;
   }
 }
