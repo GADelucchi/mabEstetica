@@ -15,20 +15,35 @@ class ClinicalRecordRouter extends RouterClass {
       }
     });
 
+    // GET /clinicalRecords/search?nombre=&apellido=&documento=
+    this.get("/search", ["ADMIN", "SUPERADMIN"], async (req, res) => {
+      try {
+        const { nombre, apellido, documento } = req.query;
+        let record = null;
+        if (documento) {
+          record = await clinicalRecordsController.getClinicalRecordByDni(documento);
+        } else if (apellido) {
+          record = await clinicalRecordsController.getClinicalRecordByLastName(apellido);
+        } else if (nombre) {
+          record = await clinicalRecordsController.getClinicalRecordByName(nombre);
+        } else {
+          return res.status(400).send({ status: "Error", message: "Indicá al menos un parámetro de búsqueda: nombre, apellido o documento" });
+        }
+        if (!record) return res.status(404).send({ status: "Error", message: "Ficha no encontrada" });
+        res.sendSuccess(record);
+      } catch (error) {
+        res.sendServerError(error);
+      }
+    })
+
     this.get("/:crid", ["ADMIN", "SUPERADMIN"], async (req, res) => {
-
-    })
-
-    this.get("/:name", ["ADMIN", "SUPERADMIN"], async (req, res) => {
-
-    })
-
-    this.get("/:last_name", ["ADMIN", "SUPERADMIN"], async (req, res) => {
-
-    })
-
-    this.get("/:dni", ["ADMIN", "SUPERADMIN"], async (req, res) => {
-
+      try {
+        const record = await clinicalRecordsController.getClinicalRecordById(req.params.crid);
+        if (!record) return res.status(404).send({ status: "Error", message: "Ficha no encontrada" });
+        res.sendSuccess(record);
+      } catch (error) {
+        res.sendServerError(error);
+      }
     })
 
     this.post("/", ["ADMIN", "SUPERADMIN"], async (req, res) => {

@@ -79,6 +79,14 @@
   font-weight: 600;
 }
 
+.login-link--button {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
 .login-link:hover {
   color: #5f3658;
 }

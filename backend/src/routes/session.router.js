@@ -5,6 +5,9 @@ const usersController = require("../controllers/users.controller");
 const { createHash, isValidPassword } = require("../utils/bcryptHash");
 const { generateToken } = require("../utils/jwt");
 const { RouterClass } = require("./routerClass");
+const { enviroment } = require("../../process/config");
+const { sendMail } = require("../utils/sendMail");
+const crypto = require("crypto");
 
 // Code
 class SessionRouter extends RouterClass {
@@ -13,6 +16,13 @@ class SessionRouter extends RouterClass {
       try {
         const { email, password } = req.body;
 
+        if (!email || !password) {
+          return res.status(400).send({
+            status: "Error",
+            message: "Email y contraseña son obligatorios",
+          });
+        }
+
         // console.log(email, password);
 
         const userDB = await usersController.getUserByEmail(email);
@@ -20,8 +30,8 @@ class SessionRouter extends RouterClass {
         // console.log("\n\nUsuario encontrado: " + JSON.stringify(userDB));
 
         // Validar usuario y contraseña
-        const fakeHash = "$2b$35$$2b$12$gCPLq5uNfwHPEM8z/gEFSuEjvg9YZ2y0M8yW403VhMC82h9iXcGFC";
-        const hashedPassword = userDB ? userDB.password : fakeHash;
+        const fakeHash = "$2b$12$6I2vVvQv4aLVj5j4uXjcUeh8n8swrfZo0M8N2X0jY7sPq2Mvw3mda";
+        const hashedPassword = userDB?.password || fakeHash;
         const isPasswordValid = isValidPassword(password, hashedPassword);
 
         if (!userDB || !isPasswordValid) {
@@ -52,11 +62,14 @@ class SessionRouter extends RouterClass {
         const access_token = generateToken(tokenUser)
         // console.log(access_token);
 
+        const isProduction = enviroment === "production";
+        const SIX_HOURS_MS = 1000 * 60 * 60 * 6;
+
         res.cookie("accessToken", access_token, {
           httpOnly: true,
-          secure: true,
-          sameSite: 'None',
-          maxAge: 1000*60*60*24*2,
+          secure: isProduction,
+          sameSite: isProduction ? "None" : "Lax",
+          maxAge: SIX_HOURS_MS,
           path: "/",
         }).status(200).send({
           status: "Success",
@@ -72,6 +85,10 @@ class SessionRouter extends RouterClass {
 
       } catch (error) {
         console.log(error);
+        return res.status(500).send({
+          status: "Error",
+          message: "No se pudo iniciar sesión",
+        });
       }
     })
 
@@ -84,25 +101,46 @@ class SessionRouter extends RouterClass {
           password
         } = req.body;
 
+        if (!nombre || !apellido || !email || !password) {
+          return res.status(400).send({
+            status: "Error",
+            message: "Nombre, apellido, email y contraseña son obligatorios",
+          });
+        }
+
+        if (password.length < 6) {
+          return res.status(400).send({
+            status: "Error",
+            message: "La contraseña debe tener al menos 6 caracteres",
+          });
+        }
+
         const existUser = await usersController.getUserByEmail(email)
 
         if (existUser) {
-          return res.send({
+          return res.status(409).send({
             status: "Error",
             message: "Email ya en uso"
           })
         }
 
-        const userRole = await rolesController.getRoleByName("USER")
+        const userRole = await rolesController.getRoleByName("profesional")
 
-        // console.log(userRole._id);
+        if (!userRole) {
+          return res.status(500).send({
+            status: "Error",
+            message: "No se encontró el rol por defecto para registrar usuarios",
+          });
+        }
+
+        // console.log(userRole.id);
 
         const newUser = {
           nombre,
           apellido,
           email,
           password: createHash(password),
-          role: userRole._id
+          role: userRole.id
         }
 
         // console.log(newUser.password);
@@ -113,19 +151,121 @@ class SessionRouter extends RouterClass {
           nombre: newUser.nombre,
           apellido: newUser.apellido,
           email: newUser.email,
-          role: newUser.userRole,
+          role: userRole.nombreRol,
         }
 
-        const regiter_token = generateToken(tokenUser)
+        const registerToken = generateToken(tokenUser)
+
+        const isProduction = enviroment === "production";
+        const SIX_HOURS_MS = 1000 * 60 * 60 * 6;
+
+        res.cookie("accessToken", registerToken, {
+          httpOnly: true,
+          secure: isProduction,
+          sameSite: isProduction ? "None" : "Lax",
+          maxAge: SIX_HOURS_MS,
+          path: "/",
+        })
 
         res.status(200).send({
           status: "Success",
           message: "Usuario registrado correctamente",
           payload: resultUser,
-          token: regiter_token
+          token: registerToken
         })
       } catch (error) {
         console.log(error);
+        return res.status(500).send({
+          status: "Error",
+          message: "No se pudo registrar el usuario",
+        });
+      }
+    })
+
+    this.post("/logout", ["PUBLIC"], (req, res) => {
+      const isProduction = enviroment === "production";
+      res.clearCookie("accessToken", {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? "None" : "Lax",
+        path: "/",
+      });
+      res.status(200).send({ status: "Success", message: "Sesión cerrada correctamente" });
+    })
+
+    // POST /session/forgot-password — envía email con link de reset
+    this.post("/forgot-password", ["PUBLIC"], async (req, res) => {
+      try {
+        const { email } = req.body;
+        if (!email) {
+          return res.status(400).send({ status: "Error", message: "El email es obligatorio" });
+        }
+
+        const user = await usersController.getUserByEmail(email);
+
+        // Respuesta genérica para no revelar si el email existe
+        if (!user) {
+          return res.status(200).send({ status: "Success", message: "Si el email existe, recibirás un correo con instrucciones." });
+        }
+
+        const token = crypto.randomBytes(32).toString("hex");
+        const expiry = new Date(Date.now() + 1000 * 60 * 60); // 1 hora
+
+        await usersController.setResetToken(email, token, expiry);
+
+        const frontendUrl = enviroment === "production"
+          ? "https://tu-dominio.com"
+          : "http://localhost:5173";
+
+        const resetLink = `${frontendUrl}/reset-password?token=${token}`;
+
+        const html = `
+          <h2>Recuperación de contraseña — MAB Estética</h2>
+          <p>Hola ${user.nombre},</p>
+          <p>Recibimos una solicitud para restablecer tu contraseña.</p>
+          <p><a href="${resetLink}" style="background:#0d6efd;color:#fff;padding:10px 20px;border-radius:5px;text-decoration:none;">Restablecer contraseña</a></p>
+          <p>Este enlace expira en 1 hora. Si no solicitaste el cambio, ignorá este mensaje.</p>
+        `;
+
+        await sendMail(email, "Recuperación de contraseña — MAB Estética", html);
+
+        res.status(200).send({ status: "Success", message: "Si el email existe, recibirás un correo con instrucciones." });
+      } catch (error) {
+        console.log(error);
+        res.status(500).send({ status: "Error", message: "No se pudo procesar la solicitud." });
+      }
+    })
+
+    // POST /session/reset-password — establece nueva contraseña con token
+    this.post("/reset-password", ["PUBLIC"], async (req, res) => {
+      try {
+        const { token, password } = req.body;
+
+        if (!token || !password) {
+          return res.status(400).send({ status: "Error", message: "Token y contraseña son obligatorios." });
+        }
+
+        if (password.length < 6) {
+          return res.status(400).send({ status: "Error", message: "La contraseña debe tener al menos 6 caracteres." });
+        }
+
+        const user = await usersController.getUserByResetToken(token);
+
+        if (!user) {
+          return res.status(400).send({ status: "Error", message: "Token inválido o expirado." });
+        }
+
+        if (new Date(user.resetTokenExpiry) < new Date()) {
+          return res.status(400).send({ status: "Error", message: "El token expiró. Solicitá uno nuevo." });
+        }
+
+        await usersController.updateUser(user.email, { password: createHash(password) });
+        await usersController.clearResetToken(user.email);
+
+        res.status(200).send({ status: "Success", message: "Contraseña actualizada correctamente. Ya podés iniciar sesión." });
+      } catch (error) {
+        console.log(error);
+        res.status(500).send({ status: "Error", message: "No se pudo restablecer la contraseña." });
       }
     })
   }

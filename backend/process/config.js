@@ -11,16 +11,26 @@ dotenv.config({
 
 
 const port = process.env.PORT
-const mongoUrl = process.env.MONGO_URL
 const jwtPrivateKey = process.env.JWT_PRIVATE_KEY
-const persistence = process.env.PERSISTENCE
 const enviroment = process.env.ENVIROMENT
+const mysqlHost = process.env.MYSQL_HOST
+const mysqlPort = process.env.MYSQL_PORT
+const mysqlUser = process.env.MYSQL_USER
+const mysqlPassword = process.env.MYSQL_PASSWORD
+const mysqlDatabase = process.env.MYSQL_DATABASE
+const gmailUser = process.env.GMAIL_USER
+const gmailPassApp = process.env.GMAIL_PASS_APP
 
 // Exports
 module.exports = {
     port,
-    mongoUrl,
     jwtPrivateKey,
-    persistence,
-    enviroment
+    enviroment,
+    mysqlHost,
+    mysqlPort,
+    mysqlUser,
+    mysqlPassword,
+    mysqlDatabase,
+    gmailUser,
+    gmailPassApp,
 }

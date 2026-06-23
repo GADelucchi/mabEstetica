@@ -19,6 +19,12 @@ updateLastConection = async (email) => await this.dao.updateLastConection(email)
 delete = async (email) => await this.dao.delete(email)
 
 findUsers = async (connectionLimit) => await this.dao.findUsers(connectionLimit)
+
+setResetToken = async (email, token, expiry) => await this.dao.setResetToken(email, token, expiry)
+
+getByResetToken = async (token) => await this.dao.getByResetToken(token)
+
+clearResetToken = async (email) => await this.dao.clearResetToken(email)
 }
 
 // Exports

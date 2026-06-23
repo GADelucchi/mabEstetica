@@ -4,7 +4,7 @@ const { jwtPrivateKey } = require('../../process/config')
 
 // Code
 const generateToken = (user) => {
-    const token = jwt.sign({ user }, jwtPrivateKey, { expiresIn: '1d' })
+    const token = jwt.sign({ user }, jwtPrivateKey, { expiresIn: '6h' })
     return token
 }
 

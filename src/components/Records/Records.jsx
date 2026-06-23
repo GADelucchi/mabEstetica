@@ -4,6 +4,7 @@ import "./Records.css";
 import PrincipalRecord from "../PrincipalRecord/PrincipalRecord";
 import DailyRecord from "../DailyRecord/DailyRecord";
 import Button from "../Button/Button";
+import { API_BASE_URL } from "../../config/apiConfig";
 
 // Code
 const Records = () => {
@@ -305,7 +306,89 @@ const Records = () => {
     };
   };
 
-  const sendInfoToServer = (e) => {
+  const buildPrincipalPayload = (form) => {
+    const v = (id) => {
+      const el = form.querySelector(`#${id}`);
+      return el ? el.value.trim() : "";
+    };
+    const radio = (name) => form.querySelector(`input[name="${name}"]:checked`)?.value ?? null;
+    const checked = (id) => form.querySelector(`#${id}`)?.checked ?? false;
+    const canvas = canvasRef.current;
+    const firmaDigital = canvas ? canvas.toDataURL("image/png") : "";
+
+    return {
+      nombre: v("nombre"),
+      apellido: v("apellido"),
+      documento: v("documento"),
+      sexo: radio("sexo"),
+      fechaNacimiento: v("fechaNacimiento"),
+      telefono: v("telefono"),
+      email: v("email"),
+      redes: v("redes"),
+      direccion: v("direccion"),
+      ciudad: v("ciudad"),
+      provincia: v("provincia"),
+      profesion: v("profesion"),
+      medioConocimiento: v("medioConocimiento"),
+      embarazo: radio("embarazo"),
+      cicloMenstrual: radio("cicloMenstrual"),
+      alteracionesHormonales: v("alteracionesHormonales"),
+      vitaminas: radio("vitaminas"),
+      vitaminasDetalle: v("vitaminasTextArea"),
+      anticonceptivos: radio("anticonceptivos"),
+      anticonceptivosDetalle: v("anticonceptivosTextArea"),
+      hormonas: radio("hormonas"),
+      hormonasDetalle: v("hormonasTextArea"),
+      corticoides: radio("corticoides"),
+      corticoidesDetalle: v("corticoidesTextArea"),
+      medicamentos: radio("medicamentos"),
+      medicamentosDetalle: v("medicamentosTextArea"),
+      alergias: radio("alergias"),
+      alergiasDetalle: v("alergiasTextArea"),
+      cirugiasPrevias: radio("cirugiasPrevias"),
+      cirugiasPreviasDetalle: v("intervencionesTextArea"),
+      marcapasos: radio("marcapasos"),
+      implantes: radio("implantes"),
+      implantesDetalle: v("implantesTextArea"),
+      problemaPiel: v("problemaPiel"),
+      desdeCuando: v("desdeCuando"),
+      tratamientosPrevios: v("tratamientosPrevios"),
+      reacciones: v("reacciones"),
+      fototipo: v("fototipo"),
+      biotipo: v("biotipo"),
+      acne: v("acne"),
+      autorizacion: radio("autorizacion"),
+      declaracion: checked("declaracion"),
+      firmaDigital,
+    };
+  };
+
+  const buildDailyPayload = (form) => {
+    const v = (id) => {
+      const el = form.querySelector(`#${id}`);
+      return el ? el.value.trim() : "";
+    };
+    const radio = (name) => form.querySelector(`input[name="${name}"]:checked`)?.value ?? null;
+
+    return {
+      idFichaPrincipal: Number(v("idFichaPrincipal")) || undefined,
+      fechaSesion: v("fechaSesion") || new Date().toISOString().split("T")[0],
+      horasSueno: Number(v("horasSueno")),
+      ejercicio: v("ejercicio"),
+      exposicionSolar: Number(v("exposicionSolar")),
+      protectorSolar: radio("protectorSolar"),
+      reaplicacion: radio("reaplicacion"),
+      aguaDiaria: Number(v("aguaDiaria")),
+      alimentos: radio("alimentos"),
+      estres: v("estres"),
+      rutinaActual: v("rutinaActual"),
+      aspectos: v("aspectos"),
+      tratamientosHoy: v("tratamientosHoy"),
+      rutinaDomiciliaria: v("rutinaDomiciliaria"),
+    };
+  };
+
+  const sendInfoToServer = async (e) => {
     e.preventDefault();
 
     const form = e.currentTarget;
@@ -326,17 +409,41 @@ const Records = () => {
       return;
     }
 
-    setFormMessageType("success");
-    setFormErrors([]);
-    setFormMessage(
-      "Formulario validado correctamente. El próximo paso es conectarlo al backend para persistir la información."
-    );
+    const payload = isPrincipalForm ? buildPrincipalPayload(form) : buildDailyPayload(form);
+    const endpoint = isPrincipalForm
+      ? `${API_BASE_URL}/clinicalRecords`
+      : `${API_BASE_URL}/dailyRecords`;
 
-    localStorage.removeItem(
-      isPrincipalForm ? "mab_principal_record_draft" : "mab_daily_record_draft"
-    );
-    form.reset();
-    if (isPrincipalForm) clearCanvas();
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "No se pudo guardar el registro.");
+      }
+
+      setFormMessageType("success");
+      setFormErrors([]);
+      setFormMessage(
+        isPrincipalForm
+          ? "Ficha principal guardada correctamente."
+          : "Registro diario guardado correctamente."
+      );
+
+      localStorage.removeItem(isPrincipalForm ? "mab_principal_record_draft" : "mab_daily_record_draft");
+      form.reset();
+      if (isPrincipalForm) clearCanvas();
+    } catch (err) {
+      setFormMessageType("danger");
+      setFormErrors([]);
+      setFormMessage(err.message || "Error al guardar. Intentá nuevamente.");
+    }
   };
 
   return (

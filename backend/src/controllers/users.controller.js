@@ -18,6 +18,12 @@ class UserController {
   findUsers = async (connectionLimit) => await userService.findUsers(connectionLimit)
 
   updateLastConection = async (email) => await userService.updateLastConection(email)
+
+  setResetToken = async (email, token, expiry) => await userService.setResetToken(email, token, expiry)
+
+  getUserByResetToken = async (token) => await userService.getByResetToken(token)
+
+  clearResetToken = async (email) => await userService.clearResetToken(email)
 }
 
 // Export

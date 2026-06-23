@@ -1,48 +1,22 @@
 // Imports
-const { persistence } = require("../../process/config");
-const { connectDB } = require("../config/serverConfig");
-
-// Variables
-let UserDao
-let RoleDao
-let ClinicalRecordDao
+const { connectDB } = require('../config/serverConfig')
+const UserDaoSql = require('./sql/user.sql')
+const RoleDaoSql = require('./sql/role.sql')
+const ClinicalRecordDaoSql = require('./sql/clinicalRecord.sql')
+const DailyRecordDaoSql = require('./sql/dailyRecord.sql')
 
 // Code
-switch (persistence) {
-  case 'MONGO':
-    connectDB()
-    const UserDaoMongo = require('./mongo/user.mongo')
-    const RoleDaoMongo = require('./mongo/role.mongo')
-    const ClinicalRecordDaoMongo = require('./mongo/clinicalRecord.mongo')
+connectDB()
 
-    UserDao = new UserDaoMongo();
-    RoleDao = new RoleDaoMongo();
-    ClinicalRecordDao = new ClinicalRecordDaoMongo();
-    break;
+const UserDao = new UserDaoSql()
+const RoleDao = new RoleDaoSql()
+const ClinicalRecordDao = new ClinicalRecordDaoSql()
+const DailyRecordDao = new DailyRecordDaoSql()
 
-  case 'FILE':
-    const UserDaoFile = require('./file/user.file')
-    const RoleDaoFile = require('./file/role.file')
-
-    UserDao = UserDaoFile
-    RoleDao = RoleDaoFile
-    break;
-
-  case 'SQL':
-    const UserDaoSql = require('./sql/user.sql')
-    const RoleDaoSql = require('./sql/role.sql')
-
-    UserDao = UserDaoSql
-    RoleDao = RoleDaoSql
-    break;
-
-  default:
-    break;
-}
-
-//Exports
+// Exports
 module.exports = {
-  UserDao,
-  RoleDao,
-  ClinicalRecordDao
+    UserDao,
+    RoleDao,
+    ClinicalRecordDao,
+    DailyRecordDao
 }

@@ -8,6 +8,8 @@ import Header from "./components/Header/Header";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import Records from "./components/Records/Records";
 import PlaceholderPage from "./components/PlaceholderPage/PlaceholderPage";
+import PrivateRoute from "./components/PrivateRoute/PrivateRoute";
+import ResetPassword from "./components/ResetPassword/ResetPassword";
 
 // Code
 function App() {
@@ -47,24 +49,29 @@ function App() {
         <main className="app-main">
           <Routes>
             <Route path="/" element={<Login />} />
-            <Route path="/home" element={<Home />} />
-            <Route path="/fichas" element={<Records />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
+            <Route path="/fichas" element={<PrivateRoute><Records /></PrivateRoute>} />
             <Route
               path="/turnos"
               element={
-                <PlaceholderPage
-                  title="Turnos"
-                  description="Esta sección va a centralizar la agenda, disponibilidad y seguimiento de citas."
-                />
+                <PrivateRoute>
+                  <PlaceholderPage
+                    title="Turnos"
+                    description="Esta sección va a centralizar la agenda, disponibilidad y seguimiento de citas."
+                  />
+                </PrivateRoute>
               }
             />
             <Route
               path="/catalogo"
               element={
-                <PlaceholderPage
-                  title="Catálogo"
-                  description="Acá vas a poder organizar servicios, tratamientos y productos sin salir del sistema."
-                />
+                <PrivateRoute>
+                  <PlaceholderPage
+                    title="Catálogo"
+                    description="Acá vas a poder organizar servicios, tratamientos y productos sin salir del sistema."
+                  />
+                </PrivateRoute>
               }
             />
           </Routes>

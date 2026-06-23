@@ -9,7 +9,7 @@ const generateProduct = () => {
             department: faker.commerce.department(),
             stock: faker.string.numeric(),
             description: faker.commerce.productDescription(),
-            id: faker.database.mongodbObjectId(),
+            id: faker.string.uuid(),
             image: faker.image.url()
         })
     }

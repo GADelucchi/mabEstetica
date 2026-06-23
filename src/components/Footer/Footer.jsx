@@ -6,7 +6,7 @@ const Footer = () => {
   return (
     <footer className="footer">
       <div className="footer__content">
-        <p>&copy; 2026 MAB Estética. Agenda y seguimiento clínico.</p>
+        <p>&copy; 2026 MAB Estética. Agenda y seguimiento clínico. Desarrollado por ®GADelucchi.</p>
       </div>
     </footer>
   );

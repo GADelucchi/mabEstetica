@@ -7,7 +7,7 @@ const generateProduct = () => {
         department: faker.commerce.department(),
         stock: faker.string.numeric(),
         description: faker.commerce.productDescription(),
-        id: faker.database.mongodbObjectId(),
+        id: faker.string.uuid(),
         image: faker.image.url()
     }
 }
@@ -25,7 +25,7 @@ exports.generateUser = () => {
         birthDate: faker.date.birthdate(),
         phone: faker.phone.number(),
         image: faker.image.avatar(),
-        id: faker.database.mongodbObjectId(),
+        id: faker.string.uuid(),
         email: faker.internet.email(),
         products
     }

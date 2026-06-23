@@ -21,7 +21,13 @@ const app = express();
 
 app.use(express.json())
 const corsOptions = {
-    origin: ['http://127.0.0.1:5500', 'http://localhost:5500', 'https://mabestetica.onrender.com'],
+    origin: [
+        'http://127.0.0.1:5500',
+        'http://localhost:5500',
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+        'https://mabestetica.onrender.com'
+    ],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     // allowedHeaders: ['Content-Type', 'Authorization'],
     // exposedHeaders: ['set-cookie'],
@@ -35,7 +41,7 @@ app.use(morgan(`dev`))
 app.use(cookieParser(`P@l@braS3cre3t0`))
 
 // initPassport()
-passport.use(passport.initialize())
+app.use(passport.initialize())
 
 // Port
 const httpServer = app.listen(port, (error) => {
