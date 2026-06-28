@@ -1,7 +1,7 @@
 // Imports
 import { useEffect, useState } from "react";
 import "./Header.css";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, Link } from "react-router-dom";
 import Navbar from "../Navbar/Navbar";
 import { useAuth } from "../../context/AuthContext";
 
@@ -17,8 +17,10 @@ const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { loguedIn, logout } = useAuth();
+  const homeLink = loguedIn ? "/home" : "/";
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const showSectionNav = location.pathname !== "/" && location.pathname !== "/home";
+  const showSectionNav =
+    location.pathname !== "/" && location.pathname !== "/home";
 
   useEffect(() => {
     setIsMenuOpen(false);
@@ -45,7 +47,9 @@ const Header = () => {
     <header className="header">
       <div className="header__content">
         <div className="header__brand">
-          <h1>MAB Estética Integral</h1>
+          <Link to={homeLink} className="header__logo-link">
+            <h1>MAB Estética Integral</h1>
+          </Link>
         </div>
 
         {loguedIn && (
@@ -64,7 +68,9 @@ const Header = () => {
       </div>
 
       {showSectionNav && (
-        <div className={`header__drawer${isMenuOpen ? " header__drawer--open" : ""}`}>
+        <div
+          className={`header__drawer${isMenuOpen ? " header__drawer--open" : ""}`}
+        >
           <button
             type="button"
             className="header__drawer-backdrop"

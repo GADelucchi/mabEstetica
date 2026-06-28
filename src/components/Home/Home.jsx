@@ -18,20 +18,18 @@ const Inicio = () => {
       <div className="home-grid">
         <Link to="/fichas" className="home-card">
           <span className="home-card__title">Fichas</span>
-          <p>
-            Accedé al alta de pacientes y al registro clínico diario desde una
-            misma vista.
-          </p>
         </Link>
 
         <Link to="/turnos" className="home-card home-card--muted">
           <span className="home-card__title">Turnos</span>
-          <p>Preparado para sumar agenda, disponibilidad y control de citas.</p>
         </Link>
 
         <Link to="/catalogo" className="home-card home-card--muted">
           <span className="home-card__title">Catálogo</span>
-          <p>Base para organizar tratamientos, servicios y productos.</p>
+        </Link>
+
+        <Link to="/configuracion" className="home-card home-card--muted">
+          <span className="home-card__title">Configuración</span>
         </Link>
       </div>
     </section>

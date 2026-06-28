@@ -26,6 +26,15 @@
   text-align: center;
 }
 
+.header__logo-link,
+.header__logo-link:visited,
+.header__logo-link:hover,
+.header__logo-link:focus,
+.header__logo-link:active {
+  text-decoration: none;
+  color: inherit;
+}
+
 .header__content > .header__menu-button {
   grid-column: 3;
   justify-self: end;
