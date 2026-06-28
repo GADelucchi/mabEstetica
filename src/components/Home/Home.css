@@ -7,7 +7,7 @@
 .home-hero {
   padding: 2rem;
   border-radius: 24px;
-  background: linear-gradient(135deg, rgba(255, 225, 251, 0.95), #ffffff 65%);
+  background: linear-gradient(135deg, var(--app-accent-soft), #ffffff 65%);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.06);
 }
 
@@ -53,7 +53,7 @@
 }
 
 .home-card--muted {
-  background: linear-gradient(180deg, #ffffff, #fff7fd);
+  background: linear-gradient(180deg, #ffffff, var(--app-surface-soft));
 }
 
 .home-card__title {

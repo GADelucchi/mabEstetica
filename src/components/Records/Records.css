@@ -36,7 +36,7 @@ textarea {
 }
 
 .form-check-input:checked {
-  background-color: #ffe1fb !important;
+  background-color: var(--app-accent) !important;
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23000' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e") !important;
 }
 
@@ -85,7 +85,7 @@ textarea {
 .records-page__header {
   padding: 1.75rem;
   border-radius: 24px;
-  background: linear-gradient(135deg, rgba(255, 225, 251, 0.95), #ffffff 65%);
+  background: linear-gradient(135deg, var(--app-accent-soft), #ffffff 65%);
   box-shadow: 0 18px 35px rgba(0, 0, 0, 0.05);
 }
 
@@ -172,7 +172,7 @@ textarea {
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 14px;
   padding: 1rem;
-  background: linear-gradient(180deg, #fff, #fff7fd);
+  background: linear-gradient(180deg, #fff, var(--app-surface-soft));
 }
 
 .records-page__selected-card h4 {

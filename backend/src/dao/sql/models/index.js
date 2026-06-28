@@ -138,10 +138,49 @@ User.hasMany(DailyRecord, { foreignKey: 'idUsuarioCarga' })
 DailyRecord.belongsTo(ClinicalRecord, { foreignKey: 'idFichaPrincipal' })
 ClinicalRecord.hasMany(DailyRecord, { foreignKey: 'idFichaPrincipal' })
 
+const Appointment = sequelize.define('Appointment', {
+    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+    fecha: { type: DataTypes.DATEONLY, allowNull: false },
+    hora: { type: DataTypes.TIME, allowNull: false },
+    idPaciente: { type: DataTypes.INTEGER, allowNull: true, field: 'id_paciente' },
+    nombrePaciente: { type: DataTypes.STRING(255), allowNull: false, field: 'nombre_paciente' },
+    estado: { type: DataTypes.ENUM('pendiente', 'asistido', 'ausente'), allowNull: false, defaultValue: 'pendiente' },
+    notasPublicas: { type: DataTypes.TEXT, allowNull: true, field: 'notas_publicas' },
+    notasPrivadas: { type: DataTypes.TEXT, allowNull: true, field: 'notas_privadas' },
+    idUsuarioCarga: { type: DataTypes.INTEGER, allowNull: true, field: 'id_usuario_carga' },
+    fechaCreacion: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW, field: 'fecha_creacion' },
+    fechaActualizacion: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW, field: 'fecha_actualizacion' },
+}, {
+    tableName: 'turnos',
+    timestamps: false,
+})
+
+const AppointmentStatusHistory = sequelize.define('AppointmentStatusHistory', {
+    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+    idTurno: { type: DataTypes.INTEGER, allowNull: false, field: 'id_turno' },
+    estadoAnterior: { type: DataTypes.ENUM('pendiente', 'asistido', 'ausente'), allowNull: true, field: 'estado_anterior' },
+    estadoNuevo: { type: DataTypes.ENUM('pendiente', 'asistido', 'ausente'), allowNull: false, field: 'estado_nuevo' },
+    idUsuario: { type: DataTypes.INTEGER, allowNull: false, field: 'id_usuario' },
+    razon: { type: DataTypes.TEXT, allowNull: true },
+    fechaCreacion: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW, field: 'fecha_creacion' },
+}, {
+    tableName: 'turno_historial',
+    timestamps: false,
+})
+
+Appointment.belongsTo(User, { foreignKey: 'idUsuarioCarga' })
+User.hasMany(Appointment, { foreignKey: 'idUsuarioCarga' })
+Appointment.hasMany(AppointmentStatusHistory, { foreignKey: 'idTurno' })
+AppointmentStatusHistory.belongsTo(Appointment, { foreignKey: 'idTurno' })
+AppointmentStatusHistory.belongsTo(User, { foreignKey: 'idUsuario' })
+User.hasMany(AppointmentStatusHistory, { foreignKey: 'idUsuario' })
+
 module.exports = {
     sequelize,
     Role,
     User,
     ClinicalRecord,
     DailyRecord,
+    Appointment,
+    AppointmentStatusHistory,
 }

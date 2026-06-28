@@ -3,7 +3,13 @@
   line-height: 1.5;
   font-weight: 400;
   color: #1f1f1f;
-  background: #f8f3f7;
+  background: #FAF9F6;
+  --app-surface: #FAF9F6;
+  --app-surface-soft: #f7f4ee;
+  --app-surface-muted: #eee7dd;
+  --app-accent: #F1ECE5;
+  --app-accent-strong: #d7ccbe;
+  --app-accent-soft: rgba(241, 236, 229, 0.95);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -22,9 +28,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background:
-    radial-gradient(circle at top, rgba(255, 225, 251, 0.95), rgba(248, 243, 247, 0) 35%),
-    #f8f3f7;
+  background: #FAF9F6;
 }
 
 #root {

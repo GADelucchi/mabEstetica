@@ -7,7 +7,7 @@
 .appointments-page__hero {
   padding: 1.5rem;
   border-radius: 24px;
-  background: linear-gradient(140deg, rgba(255, 225, 251, 0.95), #ffffff 62%);
+  background: linear-gradient(140deg, var(--app-accent-soft), #ffffff 62%);
   box-shadow: 0 18px 35px rgba(0, 0, 0, 0.05);
 }
 
@@ -81,13 +81,51 @@
 }
 
 .appointments-calendar__day--selected {
-  border-color: #b773cb;
-  background: #fff4fe;
+  border-color: var(--app-accent-strong);
+  background: #f7f0e7;
 }
 
 .appointments-calendar__day--empty {
   border: none;
   background: transparent;
+}
+
+.appointments-metrics {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.appointments-metrics__card {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  padding: 0.65rem;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.appointments-metrics__card span {
+  color: #66606a;
+  font-size: 0.86rem;
+}
+
+.appointments-metrics__card strong {
+  font-size: 1.2rem;
+}
+
+.appointments-metrics__card--pending {
+  background: #f6efe3;
+}
+
+.appointments-metrics__card--done {
+  background: #eef3ee;
+}
+
+.appointments-metrics__card--missed {
+  background: #f3ece8;
 }
 
 .appointments-panel__date {
@@ -106,6 +144,29 @@
   margin-bottom: 0.7rem;
 }
 
+.appointments-board {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.appointments-board__column {
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  border-radius: 12px;
+  padding: 0.65rem;
+  background: #f8f5f1;
+}
+
+.appointments-board__column h4 {
+  font-size: 0.98rem;
+  margin-bottom: 0.6rem;
+}
+
+.appointments-board__empty {
+  font-size: 0.9rem;
+  color: #6d6670;
+}
+
 .appointments-list__item {
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 12px;
@@ -121,6 +182,25 @@
   margin-top: 0.6rem;
 }
 
+.appointments-list__item--pendiente {
+  border-left: 4px solid #f0c24b;
+}
+
+.appointments-list__item--asistido {
+  border-left: 4px solid #4fa86b;
+}
+
+.appointments-list__item--ausente {
+  border-left: 4px solid #d45b64;
+}
+
+.appointments-list__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 115px;
+}
+
 .appointments-list__time {
   font-size: 1.05rem;
   font-weight: 700;
@@ -129,6 +209,10 @@
 
 @media (max-width: 950px) {
   .appointments-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .appointments-board {
     grid-template-columns: 1fr;
   }
 }

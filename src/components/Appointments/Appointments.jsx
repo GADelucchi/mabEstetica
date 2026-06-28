@@ -3,8 +3,6 @@ import "./Appointments.css";
 import Button from "../Button/Button";
 import { API_BASE_URL } from "../../config/apiConfig";
 
-const STORAGE_KEY = "mab_appointments";
-
 const dayKey = (date) => {
   const offset = date.getTimezoneOffset();
   const normalized = new Date(date.getTime() - offset * 60000);
@@ -18,6 +16,11 @@ const monthLabel = (date) =>
   });
 
 const weekdayLabels = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+const statusLabels = {
+  pendiente: "Pendiente",
+  asistido: "Asistido",
+  ausente: "Ausente",
+};
 
 const Appointments = () => {
   const [currentMonth, setCurrentMonth] = useState(() => {
@@ -26,42 +29,57 @@ const Appointments = () => {
   });
   const [selectedDate, setSelectedDate] = useState(() => dayKey(new Date()));
   const [patients, setPatients] = useState([]);
-  const [appointments, setAppointments] = useState(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [appointments, setAppointments] = useState([]);
+  const [appointmentHistory, setAppointmentHistory] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [editingNotes, setEditingNotes] = useState({});
   const [formData, setFormData] = useState({
     time: "",
     patientId: "",
     patientName: "",
-    note: "",
+    notasPublicas: "",
+    notasPrivadas: "",
   });
 
+  // Cargar pacientes y turnos al montar
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(appointments));
-  }, [appointments]);
-
-  useEffect(() => {
-    const fetchPatients = async () => {
+    const fetchData = async () => {
+      setLoading(true);
       try {
-        const response = await fetch(`${API_BASE_URL}/clinicalRecords`, {
+        // Cargar pacientes
+        const patientsResponse = await fetch(`${API_BASE_URL}/clinicalRecords`, {
           method: "GET",
           credentials: "include",
         });
-        const data = await response.json();
-        if (!response.ok) return;
-        setPatients(Array.isArray(data.payload) ? data.payload : []);
-      } catch {
-        setPatients([]);
+        const patientsData = await patientsResponse.json();
+        if (patientsResponse.ok) {
+          setPatients(Array.isArray(patientsData.payload) ? patientsData.payload : []);
+        }
+
+        // Cargar turnos del mes actual
+        const year = currentMonth.getFullYear();
+        const month = String(currentMonth.getMonth() + 1).padStart(2, "0");
+        const firstDay = `${year}-${month}-01`;
+        const lastDay = new Date(year, currentMonth.getMonth() + 1, 0);
+        const lastDayStr = `${year}-${month}-${String(lastDay.getDate()).padStart(2, "0")}`;
+
+        const appointmentsResponse = await fetch(
+          `${API_BASE_URL}/appointments/range?fechaInicio=${firstDay}&fechaFin=${lastDayStr}`,
+          { method: "GET", credentials: "include" }
+        );
+        const appointmentsData = await appointmentsResponse.json();
+        if (appointmentsResponse.ok) {
+          setAppointments(Array.isArray(appointmentsData.payload) ? appointmentsData.payload : []);
+        }
+      } catch (error) {
+        console.error("Error cargando datos:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchPatients();
-  }, []);
+    fetchData();
+  }, [currentMonth]);
 
   const calendarDays = useMemo(() => {
     const year = currentMonth.getFullYear();
@@ -88,14 +106,33 @@ const Appointments = () => {
 
   const selectedDayAppointments = useMemo(
     () => appointments
-      .filter((appointment) => appointment.date === selectedDate)
-      .sort((a, b) => a.time.localeCompare(b.time)),
+      .filter((appointment) => appointment.fecha === selectedDate)
+      .sort((a, b) => (a.hora || "").localeCompare(b.hora || "")),
     [appointments, selectedDate]
   );
 
+  const selectedDayByStatus = useMemo(() => {
+    return {
+      pendiente: selectedDayAppointments.filter((item) => item.estado === "pendiente"),
+      asistido: selectedDayAppointments.filter((item) => item.estado === "asistido"),
+      ausente: selectedDayAppointments.filter((item) => item.estado === "ausente"),
+    };
+  }, [selectedDayAppointments]);
+
+  const monthlySummary = useMemo(() => {
+    const monthlyAppointments = appointments;
+
+    return {
+      total: monthlyAppointments.length,
+      pendiente: monthlyAppointments.filter((item) => item.estado === "pendiente").length,
+      asistido: monthlyAppointments.filter((item) => item.estado === "asistido").length,
+      ausente: monthlyAppointments.filter((item) => item.estado === "ausente").length,
+    };
+  }, [appointments]);
+
   const appointmentCountByDate = useMemo(() => {
     return appointments.reduce((acc, appointment) => {
-      acc[appointment.date] = (acc[appointment.date] || 0) + 1;
+      acc[appointment.fecha] = (acc[appointment.fecha] || 0) + 1;
       return acc;
     }, {});
   }, [appointments]);
@@ -110,7 +147,7 @@ const Appointments = () => {
     });
   }, [selectedDate]);
 
-  const handleCreateAppointment = (event) => {
+  const handleCreateAppointment = async (event) => {
     event.preventDefault();
 
     const selectedPatient = patients.find((patient) => String(patient.id) === formData.patientId);
@@ -119,29 +156,117 @@ const Appointments = () => {
       : formData.patientName.trim();
 
     if (!formData.time || !resolvedName) {
+      alert("Complete los campos requeridos");
       return;
     }
 
-    const newAppointment = {
-      id: crypto.randomUUID(),
-      date: selectedDate,
-      time: formData.time,
-      patientName: resolvedName,
-      patientId: selectedPatient?.id || null,
-      note: formData.note.trim(),
-    };
+    try {
+      const response = await fetch(`${API_BASE_URL}/appointments`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fecha: selectedDate,
+          hora: formData.time,
+          nombrePaciente: resolvedName,
+          idPaciente: selectedPatient?.id || null,
+          notasPublicas: formData.notasPublicas,
+          notasPrivadas: formData.notasPrivadas,
+          estado: "pendiente",
+        }),
+      });
 
-    setAppointments((prev) => [...prev, newAppointment]);
-    setFormData({ time: "", patientId: "", patientName: "", note: "" });
+      if (response.ok) {
+        const data = await response.json();
+        setAppointments((prev) => [...prev, data.payload]);
+        setFormData({ time: "", patientId: "", patientName: "", notasPublicas: "", notasPrivadas: "" });
+      } else {
+        alert("Error al crear el turno");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Error de conexión");
+    }
   };
 
-  const removeAppointment = (id) => {
-    setAppointments((prev) => prev.filter((appointment) => appointment.id !== id));
+  const removeAppointment = async (id) => {
+    if (!window.confirm("¿Eliminar este turno?")) return;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/appointments/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        setAppointments((prev) => prev.filter((apt) => apt.id !== id));
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
+
+  const updateAppointmentStatus = async (id, nuevoEstado) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/appointments/${id}/status`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nuevoEstado }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setAppointments((prev) =>
+          prev.map((apt) => (apt.id === id ? data.payload : apt))
+        );
+
+        // Cargar historial
+        const historyResponse = await fetch(`${API_BASE_URL}/appointments/history/${id}`, {
+          method: "GET",
+          credentials: "include",
+        });
+        if (historyResponse.ok) {
+          const historyData = await historyResponse.json();
+          setAppointmentHistory((prev) => ({
+            ...prev,
+            [id]: Array.isArray(historyData.payload) ? historyData.payload : [],
+          }));
+        }
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
+
+  const updatePrivateNotes = async (id, notasPrivadas) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/appointments/${id}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notasPrivadas }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setAppointments((prev) =>
+          prev.map((apt) => (apt.id === id ? data.payload : apt))
+        );
+        setEditingNotes((prev) => ({ ...prev, [id]: false }));
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
   };
 
   const goMonth = (delta) => {
     setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
   };
+
+  if (loading) {
+    return <div className="appointments-page" style={{ padding: "2rem", textAlign: "center" }}>Cargando...</div>;
+  }
 
   return (
     <section className="appointments-page">
@@ -200,6 +325,25 @@ const Appointments = () => {
               );
             })}
           </div>
+
+          <div className="appointments-metrics">
+            <div className="appointments-metrics__card">
+              <span>Total mes</span>
+              <strong>{monthlySummary.total}</strong>
+            </div>
+            <div className="appointments-metrics__card appointments-metrics__card--pending">
+              <span>Pendientes</span>
+              <strong>{monthlySummary.pendiente}</strong>
+            </div>
+            <div className="appointments-metrics__card appointments-metrics__card--done">
+              <span>Asistidos</span>
+              <strong>{monthlySummary.asistido}</strong>
+            </div>
+            <div className="appointments-metrics__card appointments-metrics__card--missed">
+              <span>Ausentes</span>
+              <strong>{monthlySummary.ausente}</strong>
+            </div>
+          </div>
         </article>
 
         <article className="appointments-panel">
@@ -257,13 +401,24 @@ const Appointments = () => {
             </div>
 
             <div>
-              <label htmlFor="appointmentNote" className="form-label">Nota de tratamiento</label>
+              <label htmlFor="appointmentNotesPublic" className="form-label">Nota de tratamiento</label>
               <textarea
-                id="appointmentNote"
+                id="appointmentNotesPublic"
                 className="form-control"
-                value={formData.note}
-                onChange={(e) => setFormData((prev) => ({ ...prev, note: e.target.value }))}
+                value={formData.notasPublicas}
+                onChange={(e) => setFormData((prev) => ({ ...prev, notasPublicas: e.target.value }))}
                 placeholder="Ejemplo: limpieza profunda + dermaplaning"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="appointmentNotesPrivate" className="form-label">Notas privadas</label>
+              <textarea
+                id="appointmentNotesPrivate"
+                className="form-control"
+                value={formData.notasPrivadas}
+                onChange={(e) => setFormData((prev) => ({ ...prev, notasPrivadas: e.target.value }))}
+                placeholder="Notas internas (solo visible para profesionales)"
               />
             </div>
 
@@ -274,28 +429,81 @@ const Appointments = () => {
             />
           </form>
 
-          <div className="appointments-list">
-            <h4>Turnos del día</h4>
-            {selectedDayAppointments.length === 0 ? (
-              <p>No hay turnos cargados para esta fecha.</p>
-            ) : (
-              selectedDayAppointments.map((appointment) => (
-                <div key={appointment.id} className="appointments-list__item">
-                  <div>
-                    <p className="appointments-list__time">{appointment.time}</p>
-                    <p>{appointment.patientName}</p>
-                    <small>{appointment.note || "Sin nota"}</small>
-                  </div>
-                  <button
-                    type="button"
-                    className="btn btn-outline-danger btn-sm"
-                    onClick={() => removeAppointment(appointment.id)}
-                  >
-                    Eliminar
-                  </button>
-                </div>
-              ))
-            )}
+          <div className="appointments-board">
+            {Object.keys(statusLabels).map((statusKey) => (
+              <div key={statusKey} className="appointments-board__column">
+                <h4>{statusLabels[statusKey]} ({selectedDayByStatus[statusKey].length})</h4>
+
+                {selectedDayByStatus[statusKey].length === 0 ? (
+                  <p className="appointments-board__empty">Sin turnos.</p>
+                ) : (
+                  selectedDayByStatus[statusKey].map((appointment) => (
+                    <div key={appointment.id} className={`appointments-list__item appointments-list__item--${statusKey}`}>
+                      <div>
+                        <p className="appointments-list__time">{appointment.hora}</p>
+                        <p>{appointment.nombrePaciente}</p>
+                        <small>{appointment.notasPublicas || "Sin nota"}</small>
+                        {appointment.notasPrivadas && (
+                          <small style={{ display: "block", marginTop: "0.5rem", fontStyle: "italic", color: "#666" }}>
+                            🔒 Privado: {appointment.notasPrivadas}
+                          </small>
+                        )}
+                      </div>
+                      <div className="appointments-list__actions">
+                        <select
+                          className="form-select form-select-sm"
+                          value={appointment.estado}
+                          onChange={(event) => updateAppointmentStatus(appointment.id, event.target.value)}
+                        >
+                          <option value="pendiente">Pendiente</option>
+                          <option value="asistido">Asistido</option>
+                          <option value="ausente">Ausente</option>
+                        </select>
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary btn-sm"
+                          onClick={() => setEditingNotes((prev) => ({ ...prev, [appointment.id]: !prev[appointment.id] }))}
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-outline-danger btn-sm"
+                          onClick={() => removeAppointment(appointment.id)}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      {editingNotes[appointment.id] && (
+                        <div style={{ marginTop: "0.5rem", paddingTop: "0.5rem", borderTop: "1px solid #eee" }}>
+                          <textarea
+                            className="form-control form-control-sm"
+                            value={appointment.notasPrivadas || ""}
+                            onChange={(e) => {
+                              setAppointments((prev) =>
+                                prev.map((apt) =>
+                                  apt.id === appointment.id
+                                    ? { ...apt, notasPrivadas: e.target.value }
+                                    : apt
+                                )
+                              );
+                            }}
+                            placeholder="Editar notas privadas..."
+                          />
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-primary mt-2"
+                            onClick={() => updatePrivateNotes(appointment.id, appointment.notasPrivadas)}
+                          >
+                            Guardar
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            ))}
           </div>
         </article>
       </div>

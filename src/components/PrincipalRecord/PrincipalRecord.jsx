@@ -935,29 +935,35 @@ const PrincipalRecord = ({
             onTouchMove={draw}
             onTouchEnd={endDrawing}
           ></canvas>
-          <button
-            id="clearCanvasBtn"
-            type="button"
-            className="btn btn-danger mt-2"
-            onClick={clearCanvas}
-          >
-            Borrar firma
-          </button>
         </div>
 
         {/* Botones de acción */}
-        <div className="d-flex justify-content-center gap-3">
-          <Button
-            text="Borrar borrador"
-            type="button"
-            onClick={clearDraft}
-            className={"btn btn-outline-secondary"}
-          />
-          <Button
-            text="Enviar"
-            type="submit"
-            className={"btn btn-meli"}
-          />
+        <div className="principal-record__actions">
+          <div className="principal-record__actions-row">
+            <button
+              id="clearCanvasBtn"
+              type="button"
+              className="btn btn-danger"
+              onClick={clearCanvas}
+            >
+              Borrar firma
+            </button>
+
+            <Button
+              text="Borrar borrador"
+              type="button"
+              onClick={clearDraft}
+              className={"btn btn-outline-secondary"}
+            />
+          </div>
+
+          <div className="principal-record__actions-submit">
+            <Button
+              text="Enviar"
+              type="submit"
+              className={"btn btn-meli"}
+            />
+          </div>
         </div>
       </form>
     </div>

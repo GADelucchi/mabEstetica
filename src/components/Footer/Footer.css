@@ -1,12 +1,10 @@
 .footer {
-  background: #ffe1fb;
+  background: var(--app-accent);
   color: #000000;
   border-top: 1px solid rgba(0, 0, 0, 0.08);
-  position: fixed;
-  bottom: 0;
-  left: 0;
   width: 100%;
-  z-index: 1000;
+  position: relative;
+  z-index: 1;
 }
 
 .footer__content {
@@ -25,5 +23,9 @@
 @media (max-width: 768px) {
   .footer__content {
     width: min(100%, calc(100% - 1rem));
+  }
+
+  .footer p {
+    font-size: 0.9rem;
   }
 }

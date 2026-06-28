@@ -10,7 +10,7 @@ const defaultItems = [
 ];
 
 // Code
-const Navbar = ({ items = defaultItems, className = "" }) => {
+const Navbar = ({ items = defaultItems, className = "", onItemClick }) => {
   return (
     <nav className={`navbar navbar-expand-lg navbar-mab ${className}`.trim()}>
       <div className="container-fluid px-0">
@@ -19,6 +19,7 @@ const Navbar = ({ items = defaultItems, className = "" }) => {
             <NavLink
               key={to}
               to={to}
+              onClick={onItemClick}
               className={({ isActive }) =>
                 `nav-link mab-nav-link${isActive ? " active" : ""}`
               }

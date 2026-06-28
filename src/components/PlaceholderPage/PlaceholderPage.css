@@ -9,7 +9,7 @@
   text-align: center;
   padding: 2rem;
   border-radius: 24px;
-  background: linear-gradient(180deg, #ffffff, #fff7fd);
+  background: linear-gradient(180deg, #ffffff, var(--app-surface-soft));
   border: 1px solid rgba(0, 0, 0, 0.06);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.06);
 }

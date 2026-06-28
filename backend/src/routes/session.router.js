@@ -92,93 +92,49 @@ class SessionRouter extends RouterClass {
       }
     })
 
-    this.post("/register", ["PUBLIC"], async (req, res) => {
+    this.post("/register", ["PUBLIC"], async (_req, res) => {
+      return res.status(403).send({
+        status: "Error",
+        message: "El registro público está deshabilitado. Solicita el alta a un administrador.",
+      });
+    })
+
+    this.post("/change-password", ["ADMIN", "SUPERADMIN", "PROFESIONAL", "PACIENTE"], async (req, res) => {
       try {
-        let {
-          nombre,
-          apellido,
-          email,
-          password
-        } = req.body;
+        const { currentPassword, newPassword } = req.body;
+        const email = req.user?.email;
 
-        if (!nombre || !apellido || !email || !password) {
-          return res.status(400).send({
-            status: "Error",
-            message: "Nombre, apellido, email y contraseña son obligatorios",
-          });
+        if (!email) {
+          return res.status(401).send({ status: "Error", message: "No se pudo identificar al usuario autenticado." });
         }
 
-        if (password.length < 6) {
-          return res.status(400).send({
-            status: "Error",
-            message: "La contraseña debe tener al menos 6 caracteres",
-          });
+        if (!currentPassword || !newPassword) {
+          return res.status(400).send({ status: "Error", message: "Contraseña actual y nueva contraseña son obligatorias." });
         }
 
-        const existUser = await usersController.getUserByEmail(email)
-
-        if (existUser) {
-          return res.status(409).send({
-            status: "Error",
-            message: "Email ya en uso"
-          })
+        if (newPassword.length < 6) {
+          return res.status(400).send({ status: "Error", message: "La nueva contraseña debe tener al menos 6 caracteres." });
         }
 
-        const userRole = await rolesController.getRoleByName("profesional")
-
-        if (!userRole) {
-          return res.status(500).send({
-            status: "Error",
-            message: "No se encontró el rol por defecto para registrar usuarios",
-          });
+        const user = await usersController.getUserByEmail(email);
+        if (!user) {
+          return res.status(404).send({ status: "Error", message: "Usuario no encontrado." });
         }
 
-        // console.log(userRole.id);
-
-        const newUser = {
-          nombre,
-          apellido,
-          email,
-          password: createHash(password),
-          role: userRole.id
+        if (!isValidPassword(currentPassword, user.password)) {
+          return res.status(400).send({ status: "Error", message: "La contraseña actual no es correcta." });
         }
 
-        // console.log(newUser.password);
-
-        let resultUser = await usersController.createUser(newUser)
-
-        const tokenUser = {
-          nombre: newUser.nombre,
-          apellido: newUser.apellido,
-          email: newUser.email,
-          role: userRole.nombreRol,
+        if (isValidPassword(newPassword, user.password)) {
+          return res.status(400).send({ status: "Error", message: "La nueva contraseña debe ser distinta a la actual." });
         }
 
-        const registerToken = generateToken(tokenUser)
+        await usersController.updateUser(email, { password: createHash(newPassword) });
 
-        const isProduction = enviroment === "production";
-        const SIX_HOURS_MS = 1000 * 60 * 60 * 6;
-
-        res.cookie("accessToken", registerToken, {
-          httpOnly: true,
-          secure: isProduction,
-          sameSite: isProduction ? "None" : "Lax",
-          maxAge: SIX_HOURS_MS,
-          path: "/",
-        })
-
-        res.status(200).send({
-          status: "Success",
-          message: "Usuario registrado correctamente",
-          payload: resultUser,
-          token: registerToken
-        })
+        return res.status(200).send({ status: "Success", message: "Contraseña actualizada correctamente." });
       } catch (error) {
         console.log(error);
-        return res.status(500).send({
-          status: "Error",
-          message: "No se pudo registrar el usuario",
-        });
+        return res.status(500).send({ status: "Error", message: "No se pudo actualizar la contraseña." });
       }
     })
 

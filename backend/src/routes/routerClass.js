@@ -47,6 +47,8 @@ class RouterClass {
 
       console.log(credential);
 
+      req.user = credential.user;
+
       if (!policies.includes(credential.user.role.toUpperCase())) {
         return res.status(403).send({ status: 'Error', error: "No tiene permiso necesario" });
       }
@@ -67,6 +69,10 @@ class RouterClass {
 
   put(path, policies, ...callbacks) {
     this.router.put(path, this.handlePolicies(policies), this.generateCustomResponse, this.applyCallbacks(callbacks))
+  }
+
+  patch(path, policies, ...callbacks) {
+    this.router.patch(path, this.handlePolicies(policies), this.generateCustomResponse, this.applyCallbacks(callbacks))
   }
 
   delete(path, policies, ...callbacks) {
