@@ -28,13 +28,14 @@ const corsOptions = {
         'http://127.0.0.1:5173',
         'https://mabestetica.onrender.com'
     ],
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    // allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
     // exposedHeaders: ['set-cookie'],
     // preflightContinue: false,
     credentials: true
 };
 app.use(cors(corsOptions))
+app.options('*', cors(corsOptions))
 app.use(express.urlencoded({ extended: true }))
 app.use(morgan(`dev`))
 

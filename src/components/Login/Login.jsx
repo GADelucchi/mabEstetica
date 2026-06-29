@@ -37,7 +37,7 @@ const Login = () => {
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.message || "No se pudo iniciar sesión.");
-    setLogedIn(true, data.payload);
+    setLogedIn(true, data.payload, data.token || null);
     navigate("/home");
   };
 

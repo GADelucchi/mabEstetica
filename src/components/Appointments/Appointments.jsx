@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import "./Appointments.css";
 import Button from "../Button/Button";
 import { API_BASE_URL } from "../../config/apiConfig";
+
+const ACCESS_TOKEN_KEY = "mab_access_token";
 
 const dayKey = (date) => {
   const offset = date.getTimezoneOffset();
@@ -22,6 +24,22 @@ const statusLabels = {
   ausente: "Ausente",
 };
 
+const durationOptions = [15, 20, 30, 45, 60, 75, 90, 120];
+
+const toMinutes = (hora) => {
+  if (!hora) return 0;
+  const parts = String(hora).split(":");
+  const h = Number(parts[0] || 0);
+  const m = Number(parts[1] || 0);
+  return h * 60 + m;
+};
+
+const formatHour = (hora) => {
+  if (!hora) return "--:--";
+  const [h = "00", m = "00"] = String(hora).split(":");
+  return `${h.padStart(2, "0")}:${m.padStart(2, "0")}`;
+};
+
 const Appointments = () => {
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
@@ -33,13 +51,45 @@ const Appointments = () => {
   const [appointmentHistory, setAppointmentHistory] = useState({});
   const [loading, setLoading] = useState(false);
   const [editingNotes, setEditingNotes] = useState({});
+  const [desktopTime, setDesktopTime] = useState({ hours: "", minutes: "" });
+  const minutesInputRef = useRef(null);
   const [formData, setFormData] = useState({
     time: "",
+    durationMinutes: 30,
     patientId: "",
     patientName: "",
     notasPublicas: "",
     notasPrivadas: "",
   });
+
+  const isMobileDevice = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(max-width: 768px), (pointer: coarse)").matches;
+  }, []);
+
+  const getAuthHeaders = (withJson = false) => {
+    const token = localStorage.getItem(ACCESS_TOKEN_KEY);
+    const headers = {};
+    if (withJson) headers["Content-Type"] = "application/json";
+    if (token) headers.Authorization = `Bearer ${token}`;
+    return headers;
+  };
+
+  const padTimePart = (value) => value.padStart(2, "0");
+
+  const normalizeHour = (value) => {
+    if (value === "") return "";
+    const number = Number(value);
+    if (Number.isNaN(number)) return "";
+    return String(Math.max(0, Math.min(23, number))).padStart(2, "0");
+  };
+
+  const normalizeMinute = (value) => {
+    if (value === "") return "";
+    const number = Number(value);
+    if (Number.isNaN(number)) return "";
+    return String(Math.max(0, Math.min(59, number))).padStart(2, "0");
+  };
 
   // Cargar pacientes y turnos al montar
   useEffect(() => {
@@ -50,6 +100,7 @@ const Appointments = () => {
         const patientsResponse = await fetch(`${API_BASE_URL}/clinicalRecords`, {
           method: "GET",
           credentials: "include",
+          headers: getAuthHeaders(),
         });
         const patientsData = await patientsResponse.json();
         if (patientsResponse.ok) {
@@ -65,7 +116,7 @@ const Appointments = () => {
 
         const appointmentsResponse = await fetch(
           `${API_BASE_URL}/appointments/range?fechaInicio=${firstDay}&fechaFin=${lastDayStr}`,
-          { method: "GET", credentials: "include" }
+          { method: "GET", credentials: "include", headers: getAuthHeaders() }
         );
         const appointmentsData = await appointmentsResponse.json();
         if (appointmentsResponse.ok) {
@@ -80,6 +131,19 @@ const Appointments = () => {
 
     fetchData();
   }, [currentMonth]);
+
+  useEffect(() => {
+    if (isMobileDevice) return;
+    if (!desktopTime.hours || !desktopTime.minutes) {
+      setFormData((prev) => ({ ...prev, time: "" }));
+      return;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      time: `${padTimePart(desktopTime.hours)}:${padTimePart(desktopTime.minutes)}`,
+    }));
+  }, [desktopTime, isMobileDevice]);
 
   const calendarDays = useMemo(() => {
     const year = currentMonth.getFullYear();
@@ -160,14 +224,29 @@ const Appointments = () => {
       return;
     }
 
+    const start = toMinutes(formData.time);
+    const duration = Number(formData.durationMinutes || 30);
+    const end = start + duration;
+    const overlap = selectedDayAppointments.some((appointment) => {
+      const itemStart = toMinutes(appointment.hora);
+      const itemEnd = itemStart + Number(appointment.duracionMinutos || 30);
+      return start < itemEnd && itemStart < end;
+    });
+
+    if (overlap) {
+      alert("Ese horario se superpone con otro turno ya agendado.");
+      return;
+    }
+
     try {
       const response = await fetch(`${API_BASE_URL}/appointments`, {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(true),
         body: JSON.stringify({
           fecha: selectedDate,
           hora: formData.time,
+          duracionMinutos: duration,
           nombrePaciente: resolvedName,
           idPaciente: selectedPatient?.id || null,
           notasPublicas: formData.notasPublicas,
@@ -179,9 +258,11 @@ const Appointments = () => {
       if (response.ok) {
         const data = await response.json();
         setAppointments((prev) => [...prev, data.payload]);
-        setFormData({ time: "", patientId: "", patientName: "", notasPublicas: "", notasPrivadas: "" });
+        setFormData({ time: "", durationMinutes: 30, patientId: "", patientName: "", notasPublicas: "", notasPrivadas: "" });
+        setDesktopTime({ hours: "", minutes: "" });
       } else {
-        alert("Error al crear el turno");
+        const data = await response.json().catch(() => ({}));
+        alert(data.message || data.error || "Error al crear el turno");
       }
     } catch (error) {
       console.error("Error:", error);
@@ -196,6 +277,7 @@ const Appointments = () => {
       const response = await fetch(`${API_BASE_URL}/appointments/${id}`, {
         method: "DELETE",
         credentials: "include",
+        headers: getAuthHeaders(),
       });
 
       if (response.ok) {
@@ -211,7 +293,7 @@ const Appointments = () => {
       const response = await fetch(`${API_BASE_URL}/appointments/${id}/status`, {
         method: "PATCH",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(true),
         body: JSON.stringify({ nuevoEstado }),
       });
 
@@ -225,6 +307,7 @@ const Appointments = () => {
         const historyResponse = await fetch(`${API_BASE_URL}/appointments/history/${id}`, {
           method: "GET",
           credentials: "include",
+          headers: getAuthHeaders(),
         });
         if (historyResponse.ok) {
           const historyData = await historyResponse.json();
@@ -244,7 +327,7 @@ const Appointments = () => {
       const response = await fetch(`${API_BASE_URL}/appointments/${id}`, {
         method: "PUT",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(true),
         body: JSON.stringify({ notasPrivadas }),
       });
 
@@ -262,6 +345,35 @@ const Appointments = () => {
 
   const goMonth = (delta) => {
     setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
+  };
+
+  const handleDesktopHourChange = (event) => {
+    const raw = event.target.value.replace(/\D/g, "").slice(0, 2);
+    setDesktopTime((prev) => ({ ...prev, hours: raw }));
+
+    if (raw.length === 2) {
+      const normalized = normalizeHour(raw);
+      setDesktopTime((prev) => ({ ...prev, hours: normalized }));
+      minutesInputRef.current?.focus();
+    }
+  };
+
+  const handleDesktopMinuteChange = (event) => {
+    const raw = event.target.value.replace(/\D/g, "").slice(0, 2);
+    setDesktopTime((prev) => ({ ...prev, minutes: raw }));
+
+    if (raw.length === 2) {
+      const normalized = normalizeMinute(raw);
+      setDesktopTime((prev) => ({ ...prev, minutes: normalized }));
+    }
+  };
+
+  const handleDesktopHourBlur = () => {
+    setDesktopTime((prev) => ({ ...prev, hours: normalizeHour(prev.hours) }));
+  };
+
+  const handleDesktopMinuteBlur = () => {
+    setDesktopTime((prev) => ({ ...prev, minutes: normalizeMinute(prev.minutes) }));
   };
 
   if (loading) {
@@ -352,14 +464,65 @@ const Appointments = () => {
           <form onSubmit={handleCreateAppointment} className="appointments-form">
             <div>
               <label htmlFor="appointmentTime" className="form-label">Horario</label>
-              <input
-                id="appointmentTime"
-                type="time"
+              {isMobileDevice ? (
+                <input
+                  id="appointmentTime"
+                  type="time"
+                  className="form-control"
+                  value={formData.time}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, time: e.target.value }))}
+                  step={60}
+                  min="00:00"
+                  max="23:59"
+                  lang="en-GB"
+                  required
+                />
+              ) : (
+                <div className="appointments-time-inputs">
+                  <input
+                    id="appointmentTime"
+                    type="text"
+                    inputMode="numeric"
+                    className="form-control"
+                    placeholder="HH"
+                    aria-label="Hora"
+                    value={desktopTime.hours}
+                    onChange={handleDesktopHourChange}
+                    onBlur={handleDesktopHourBlur}
+                    maxLength={2}
+                    required
+                  />
+                  <span className="appointments-time-separator">:</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    className="form-control"
+                    placeholder="MM"
+                    aria-label="Minutos"
+                    value={desktopTime.minutes}
+                    onChange={handleDesktopMinuteChange}
+                    onBlur={handleDesktopMinuteBlur}
+                    maxLength={2}
+                    ref={minutesInputRef}
+                    required
+                  />
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="appointmentDuration" className="form-label">Duración del turno</label>
+              <select
+                id="appointmentDuration"
                 className="form-control"
-                value={formData.time}
-                onChange={(e) => setFormData((prev) => ({ ...prev, time: e.target.value }))}
+                value={formData.durationMinutes}
+                onChange={(e) => setFormData((prev) => ({ ...prev, durationMinutes: Number(e.target.value) }))}
                 required
-              />
+              >
+                {durationOptions.map((duration) => (
+                  <option key={duration} value={duration}>{duration} minutos</option>
+                ))}
+              </select>
             </div>
 
             <div>
@@ -428,85 +591,111 @@ const Appointments = () => {
               className="btn btn-meli"
             />
           </form>
-
-          <div className="appointments-board">
-            {Object.keys(statusLabels).map((statusKey) => (
-              <div key={statusKey} className="appointments-board__column">
-                <h4>{statusLabels[statusKey]} ({selectedDayByStatus[statusKey].length})</h4>
-
-                {selectedDayByStatus[statusKey].length === 0 ? (
-                  <p className="appointments-board__empty">Sin turnos.</p>
-                ) : (
-                  selectedDayByStatus[statusKey].map((appointment) => (
-                    <div key={appointment.id} className={`appointments-list__item appointments-list__item--${statusKey}`}>
-                      <div>
-                        <p className="appointments-list__time">{appointment.hora}</p>
-                        <p>{appointment.nombrePaciente}</p>
-                        <small>{appointment.notasPublicas || "Sin nota"}</small>
-                        {appointment.notasPrivadas && (
-                          <small style={{ display: "block", marginTop: "0.5rem", fontStyle: "italic", color: "#666" }}>
-                            🔒 Privado: {appointment.notasPrivadas}
-                          </small>
-                        )}
-                      </div>
-                      <div className="appointments-list__actions">
-                        <select
-                          className="form-select form-select-sm"
-                          value={appointment.estado}
-                          onChange={(event) => updateAppointmentStatus(appointment.id, event.target.value)}
-                        >
-                          <option value="pendiente">Pendiente</option>
-                          <option value="asistido">Asistido</option>
-                          <option value="ausente">Ausente</option>
-                        </select>
-                        <button
-                          type="button"
-                          className="btn btn-outline-secondary btn-sm"
-                          onClick={() => setEditingNotes((prev) => ({ ...prev, [appointment.id]: !prev[appointment.id] }))}
-                        >
-                          ✏️
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-outline-danger btn-sm"
-                          onClick={() => removeAppointment(appointment.id)}
-                        >
-                          ✕
-                        </button>
-                      </div>
-                      {editingNotes[appointment.id] && (
-                        <div style={{ marginTop: "0.5rem", paddingTop: "0.5rem", borderTop: "1px solid #eee" }}>
-                          <textarea
-                            className="form-control form-control-sm"
-                            value={appointment.notasPrivadas || ""}
-                            onChange={(e) => {
-                              setAppointments((prev) =>
-                                prev.map((apt) =>
-                                  apt.id === appointment.id
-                                    ? { ...apt, notasPrivadas: e.target.value }
-                                    : apt
-                                )
-                              );
-                            }}
-                            placeholder="Editar notas privadas..."
-                          />
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-primary mt-2"
-                            onClick={() => updatePrivateNotes(appointment.id, appointment.notasPrivadas)}
-                          >
-                            Guardar
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-            ))}
-          </div>
         </article>
       </div>
+
+      <article className="appointments-schedule">
+        <header className="appointments-schedule__header">
+          <h3>Turnos del día</h3>
+          <p>{selectedDayLabel}</p>
+        </header>
+
+        <div className="appointments-schedule__grid">
+          {selectedDayAppointments.length === 0 ? (
+            <p className="appointments-board__empty">No hay turnos cargados para este día.</p>
+          ) : (
+            selectedDayAppointments.map((appointment) => (
+              <div
+                key={appointment.id}
+                className={`appointments-list__item appointments-list__item--${appointment.estado}`}
+              >
+                <div>
+                  <p className="appointments-list__time">{formatHour(appointment.hora)}</p>
+                  <p className="appointments-list__duration">Duración: {appointment.duracionMinutos || 30} min</p>
+                  <p>{appointment.nombrePaciente}</p>
+                  <small>{appointment.notasPublicas || "Sin nota"}</small>
+                  {appointment.notasPrivadas && (
+                    <small style={{ display: "block", marginTop: "0.5rem", fontStyle: "italic", color: "#666" }}>
+                      🔒 Privado: {appointment.notasPrivadas}
+                    </small>
+                  )}
+                </div>
+
+                <div className="appointments-list__actions">
+                  {appointment.estado === "pendiente" ? (
+                    <>
+                      <button
+                        type="button"
+                        className="btn btn-outline-success btn-sm"
+                        onClick={() => updateAppointmentStatus(appointment.id, "asistido")}
+                      >
+                        Asistió
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-outline-warning btn-sm"
+                        onClick={() => updateAppointmentStatus(appointment.id, "ausente")}
+                      >
+                        Ausente
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary btn-sm"
+                      onClick={() => updateAppointmentStatus(appointment.id, "pendiente")}
+                    >
+                      Volver a pendiente
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary btn-sm"
+                    onClick={() => setEditingNotes((prev) => ({ ...prev, [appointment.id]: !prev[appointment.id] }))}
+                  >
+                    Editar notas
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn-outline-danger btn-sm"
+                    onClick={() => removeAppointment(appointment.id)}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+
+                {editingNotes[appointment.id] && (
+                  <div style={{ marginTop: "0.5rem", paddingTop: "0.5rem", borderTop: "1px solid #eee" }}>
+                    <textarea
+                      className="form-control form-control-sm"
+                      value={appointment.notasPrivadas || ""}
+                      onChange={(e) => {
+                        setAppointments((prev) =>
+                          prev.map((apt) =>
+                            apt.id === appointment.id
+                              ? { ...apt, notasPrivadas: e.target.value }
+                              : apt
+                          )
+                        );
+                      }}
+                      placeholder="Editar notas privadas..."
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-primary mt-2"
+                      onClick={() => updatePrivateNotes(appointment.id, appointment.notasPrivadas)}
+                    >
+                      Guardar
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      </article>
     </section>
   );
 };

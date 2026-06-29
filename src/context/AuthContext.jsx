@@ -7,6 +7,7 @@ export const AuthContext = createContext();
 
 const INACTIVITY_LIMIT_MS = 6 * 60 * 60 * 1000; // 6 horas
 const LAST_ACTIVITY_KEY = "mab_last_activity";
+const ACCESS_TOKEN_KEY = "mab_access_token";
 
 const loadUser = () => {
   try {
@@ -34,6 +35,7 @@ export const AuthProvider = ({ children }) => {
     }
     localStorage.removeItem("loguedIn");
     localStorage.removeItem("mab_user");
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
     localStorage.removeItem(LAST_ACTIVITY_KEY);
     setLoguedInState(false);
     setUserState(null);
@@ -45,13 +47,16 @@ export const AuthProvider = ({ children }) => {
     inactivityTimer.current = setTimeout(logout, INACTIVITY_LIMIT_MS);
   }, [logout]);
 
-  const setLogedIn = useCallback((value, userData = null) => {
+  const setLogedIn = useCallback((value, userData = null, accessToken = null) => {
     if (value) {
       localStorage.setItem("loguedIn", "true");
       localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
       if (userData) {
         localStorage.setItem("mab_user", JSON.stringify(userData));
         setUserState(userData);
+      }
+      if (accessToken) {
+        localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
       }
       setLoguedInState(true);
     } else {

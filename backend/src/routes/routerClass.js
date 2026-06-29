@@ -37,15 +37,19 @@ class RouterClass {
   handlePolicies = policies => (req, res, next) => {
     if (policies[0] === 'PUBLIC') return next()
 
-    const token = req.cookies?.accessToken
+    const cookieToken = req.cookies?.accessToken
+    const authHeader = req.headers?.authorization || req.headers?.Authorization || ''
+    const bearerToken = authHeader.toLowerCase().startsWith('bearer ')
+      ? authHeader.slice(7).trim()
+      : null
+
+    const token = cookieToken || bearerToken
     if (!token) {
       return res.status(401).send({ status: 'Error', error: "No se encuentra el token de autorización" });
     }
 
     try {
       const credential = jwt.verify(token, jwtPrivateKey)
-
-      console.log(credential);
 
       req.user = credential.user;
 

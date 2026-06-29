@@ -52,7 +52,7 @@ const Header = () => {
           </Link>
         </div>
 
-        {loguedIn && (
+        {loguedIn && showSectionNav && (
           <button
             type="button"
             className="header__menu-button"
@@ -66,6 +66,12 @@ const Header = () => {
           </button>
         )}
       </div>
+
+      {showSectionNav && (
+        <div className="header__subnav header__subnav--desktop">
+          <Navbar items={sectionNavItems} className="header__subnav-nav" />
+        </div>
+      )}
 
       {showSectionNav && (
         <div

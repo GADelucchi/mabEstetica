@@ -30,7 +30,7 @@ p {
   margin-bottom: 0;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .app-shell {
     --header-offset: 8rem;
   }
@@ -60,7 +60,7 @@ p {
   z-index: 1150;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .scroll-top-button {
     right: 0.8rem;
     bottom: 4.8rem;

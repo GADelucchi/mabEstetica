@@ -50,6 +50,7 @@ class AppointmentDaoSql {
         const created = await Appointment.create({
             fecha: newAppointment.fecha,
             hora: newAppointment.hora,
+            duracionMinutos: Number(newAppointment.duracionMinutos) || 30,
             idPaciente: newAppointment.idPaciente || null,
             nombrePaciente: newAppointment.nombrePaciente,
             estado: newAppointment.estado || 'pendiente',
@@ -61,14 +62,19 @@ class AppointmentDaoSql {
     }
 
     update = async (id, updatedAppointment) => {
+        const current = await this.getById(id)
+        if (!current) return null
+
         await Appointment.update(
             {
-                fecha: updatedAppointment.fecha,
-                hora: updatedAppointment.hora,
-                nombrePaciente: updatedAppointment.nombrePaciente,
-                estado: updatedAppointment.estado,
-                notasPublicas: updatedAppointment.notasPublicas,
-                notasPrivadas: updatedAppointment.notasPrivadas,
+                fecha: updatedAppointment.fecha ?? current.fecha,
+                hora: updatedAppointment.hora ?? current.hora,
+                duracionMinutos: Number(updatedAppointment.duracionMinutos ?? current.duracionMinutos ?? 30),
+                idPaciente: updatedAppointment.idPaciente ?? current.idPaciente,
+                nombrePaciente: updatedAppointment.nombrePaciente ?? current.nombrePaciente,
+                estado: updatedAppointment.estado ?? current.estado,
+                notasPublicas: updatedAppointment.notasPublicas ?? current.notasPublicas,
+                notasPrivadas: updatedAppointment.notasPrivadas ?? current.notasPrivadas,
                 fechaActualizacion: new Date(),
             },
             { where: { id: Number(id) } }

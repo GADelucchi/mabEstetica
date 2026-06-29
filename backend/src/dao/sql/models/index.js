@@ -142,6 +142,7 @@ const Appointment = sequelize.define('Appointment', {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     fecha: { type: DataTypes.DATEONLY, allowNull: false },
     hora: { type: DataTypes.TIME, allowNull: false },
+    duracionMinutos: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 30, field: 'duracion_minutos' },
     idPaciente: { type: DataTypes.INTEGER, allowNull: true, field: 'id_paciente' },
     nombrePaciente: { type: DataTypes.STRING(255), allowNull: false, field: 'nombre_paciente' },
     estado: { type: DataTypes.ENUM('pendiente', 'asistido', 'ausente'), allowNull: false, defaultValue: 'pendiente' },

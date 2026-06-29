@@ -51,6 +51,7 @@ class SessionRouter extends RouterClass {
 
         // Crear token
         const tokenUser = {
+          id: userDB.id,
           nombre: userDB.nombre,
           apellido: userDB.apellido,
           email: userDB.email,

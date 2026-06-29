@@ -20,7 +20,7 @@
   font-size: 0.95rem;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .footer__content {
     width: min(100%, calc(100% - 1rem));
   }

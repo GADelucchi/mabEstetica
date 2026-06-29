@@ -62,6 +62,16 @@
   background: #262127;
 }
 
+.header__subnav {
+  width: min(1120px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 0 0 0.85rem;
+}
+
+.header__subnav--desktop {
+  display: block;
+}
+
 .header__drawer {
   position: fixed;
   inset: 0;
@@ -162,11 +172,15 @@
   line-height: 1.05;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .header__content {
     width: min(100%, calc(100% - 1rem));
     padding: 0.9rem 0;
     grid-template-columns: 1fr auto 1fr;
+  }
+
+  .header__subnav--desktop {
+    display: none;
   }
 
   .header__menu-button {
@@ -176,7 +190,7 @@
   }
 
   .header__drawer-panel {
-    width: min(86vw, 320px);
+    width: min(82vw, 360px);
     padding: 0.9rem;
   }
 

@@ -2,6 +2,28 @@
 const appointmentsController = require("../controllers/appointments.controller");
 const { RouterClass } = require("./routerClass");
 
+const toMinutes = (hora) => {
+    if (!hora) return 0;
+    const parts = String(hora).split(":");
+    const h = Number(parts[0] || 0);
+    const m = Number(parts[1] || 0);
+    return h * 60 + m;
+};
+
+const hasOverlap = ({ appointments, hora, duracionMinutos, ignoreId = null }) => {
+    const start = toMinutes(hora);
+    const end = start + Number(duracionMinutos || 30);
+
+    return appointments.some((appointment) => {
+        if (ignoreId && Number(appointment.id) === Number(ignoreId)) return false;
+
+        const appointmentStart = toMinutes(appointment.hora);
+        const appointmentEnd = appointmentStart + Number(appointment.duracionMinutos || 30);
+
+        return start < appointmentEnd && appointmentStart < end;
+    });
+};
+
 // Code
 class AppointmentRouter extends RouterClass {
     init() {
@@ -86,15 +108,33 @@ class AppointmentRouter extends RouterClass {
         // POST /appointments — crear
         this.post("/", ["ADMIN", "SUPERADMIN", "PROFESIONAL"], async (req, res) => {
             try {
-                const { fecha, hora, nombrePaciente } = req.body;
+                const { fecha, hora, nombrePaciente, duracionMinutos } = req.body;
                 if (!fecha || !hora || !nombrePaciente) {
                     return res.status(400).send({ 
                         status: "Error", 
                         message: "Requiere fecha, hora y nombrePaciente" 
                     });
                 }
+
+                const duration = Number(duracionMinutos || 30);
+                if (!Number.isFinite(duration) || duration < 5 || duration > 480) {
+                    return res.status(400).send({
+                        status: "Error",
+                        message: "Duración inválida. Debe estar entre 5 y 480 minutos.",
+                    });
+                }
+
+                const appointmentsByDate = await appointmentsController.getAppointmentsByDate(fecha);
+                if (hasOverlap({ appointments: appointmentsByDate, hora, duracionMinutos: duration })) {
+                    return res.status(409).send({
+                        status: "Error",
+                        message: "Ya existe un turno que se superpone en ese horario.",
+                    });
+                }
+
                 const newAppointment = {
                     ...req.body,
+                    duracionMinutos: duration,
                     idUsuarioCarga: req.user?.id || null,
                 };
                 const created = await appointmentsController.createAppointment(newAppointment);
@@ -107,9 +147,41 @@ class AppointmentRouter extends RouterClass {
         // PUT /appointments/:id — actualizar
         this.put("/:id", ["ADMIN", "SUPERADMIN", "PROFESIONAL"], async (req, res) => {
             try {
+                const current = await appointmentsController.getAppointmentById(req.params.id);
+                if (!current) {
+                    return res.status(404).send({
+                        status: "Error",
+                        message: "Turno no encontrado",
+                    });
+                }
+
+                const fecha = req.body.fecha || current.fecha;
+                const hora = req.body.hora || current.hora;
+                const duracionMinutos = Number(req.body.duracionMinutos ?? current.duracionMinutos ?? 30);
+
+                if (!Number.isFinite(duracionMinutos) || duracionMinutos < 5 || duracionMinutos > 480) {
+                    return res.status(400).send({
+                        status: "Error",
+                        message: "Duración inválida. Debe estar entre 5 y 480 minutos.",
+                    });
+                }
+
+                const appointmentsByDate = await appointmentsController.getAppointmentsByDate(fecha);
+                if (hasOverlap({
+                    appointments: appointmentsByDate,
+                    hora,
+                    duracionMinutos,
+                    ignoreId: req.params.id,
+                })) {
+                    return res.status(409).send({
+                        status: "Error",
+                        message: "Ya existe un turno que se superpone en ese horario.",
+                    });
+                }
+
                 const updated = await appointmentsController.updateAppointment(
                     req.params.id, 
-                    req.body
+                    { ...req.body, fecha, hora, duracionMinutos }
                 );
                 res.sendSuccess(updated);
             } catch (error) {
